@@ -41,7 +41,7 @@ export default defineConfig(
   typescript.configs.recommendedTypeChecked,
   typescript.configs.strictTypeChecked,
   stylistic.configs.customize({ arrowParens: true, semi: true }),
-  perfectionist.configs['recommended-alphabetical'],
+  perfectionist.configs['recommended-natural'],
   prettyImport.configs.warn,
   {
     name: 'better-tailwindcss',
