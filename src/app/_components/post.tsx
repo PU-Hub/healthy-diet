@@ -43,7 +43,10 @@ export function LatestPost() {
           value={name}
         />
         <button
-          className="rounded-full bg-white/10 px-10 py-3 font-semibold transition hover:bg-white/20"
+          className={`
+            rounded-full bg-white/10 px-10 py-3 font-semibold transition
+            hover:bg-white/20
+          `}
           disabled={createPost.isPending}
           type="submit"
         >

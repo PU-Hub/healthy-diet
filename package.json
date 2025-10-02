@@ -48,6 +48,7 @@
     "drizzle-kit": "^0.30.5",
     "eslint": "^9.36.0",
     "eslint-config-next": "^15.2.3",
+    "eslint-plugin-better-tailwindcss": "^3.7.9",
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-perfectionist": "^4.15.0",
     "jiti": "^2.6.1",

@@ -6,6 +6,7 @@ import javascript from '@eslint/js';
 import perfectionist from 'eslint-plugin-perfectionist';
 import prettyImport from '@kamiya4047/eslint-plugin-pretty-import';
 import stylistic from '@stylistic/eslint-plugin';
+import tailwindcss from 'eslint-plugin-better-tailwindcss';
 import typescript from 'typescript-eslint';
 
 const compat = new FlatCompat({
@@ -36,6 +37,20 @@ export default defineConfig(
   stylistic.configs.customize({ arrowParens: true, semi: true }),
   perfectionist.configs['recommended-alphabetical'],
   prettyImport.configs.warn,
+  {
+    name: 'better-tailwindcss',
+    plugins: {
+      'better-tailwindcss': tailwindcss,
+    },
+    rules: {
+      ...tailwindcss.configs['recommended-warn'].rules,
+    },
+    settings: {
+      'better-tailwindcss': {
+        entryPoint: 'src/styles/globals.css',
+      },
+    },
+  },
   {
     files: ['**/*.ts', '**/*.tsx'],
     plugins: {
