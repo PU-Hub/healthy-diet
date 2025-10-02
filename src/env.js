@@ -1,5 +1,5 @@
 import { createEnv } from '@t3-oss/env-nextjs';
-import { z } from 'zod';
+import { type } from 'arktype';
 
 export const env = createEnv({
   /**
@@ -33,16 +33,14 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    AUTH_DISCORD_ID: z.string(),
-    AUTH_DISCORD_SECRET: z.string(),
+    AUTH_DISCORD_ID: type.string,
+    AUTH_DISCORD_SECRET: type.string,
     AUTH_SECRET:
       process.env.NODE_ENV === 'production'
-        ? z.string()
-        : z.string().optional(),
-    DATABASE_URL: z.string().url(),
-    NODE_ENV: z
-      .enum(['development', 'test', 'production'])
-      .default('development'),
+        ? type('string')
+        : type('string | undefined'),
+    DATABASE_URL: type('string.url'),
+    NODE_ENV: type('"development" | "test" | "production"'),
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

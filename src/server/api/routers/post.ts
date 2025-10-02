@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { type } from 'arktype';
 
 import {
   createTRPCRouter,
@@ -9,7 +9,9 @@ import { posts } from '@/server/db/schema';
 
 export const postRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(z.object({ name: z.string().min(1) }))
+    .input(type({
+      name: type('string > 0'),
+    }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.insert(posts).values({
         createdById: ctx.session.user.id,
@@ -30,7 +32,9 @@ export const postRouter = createTRPCRouter({
   }),
 
   hello: publicProcedure
-    .input(z.object({ text: z.string() }))
+    .input(type({
+      text: type('string'),
+    }))
     .query(({ input }) => {
       return {
         greeting: `Hello ${input.text}`,
