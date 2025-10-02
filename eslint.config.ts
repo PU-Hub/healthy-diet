@@ -74,6 +74,14 @@ export default defineConfig(
     },
   },
   {
+    name: 'overrides',
+    rules: {
+      'better-tailwindcss/no-unregistered-classes': ['warn', {
+        ignore: ['toaster'],
+      }],
+    },
+  },
+  {
     name: 'disables',
     rules: {
       '@typescript-eslint/restrict-template-expressions': 'off',
