@@ -1,10 +1,6 @@
 import { type } from 'arktype';
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from '@/server/api/trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 import { posts } from '@/server/db/schema';
 
 export const postRouter = createTRPCRouter({
