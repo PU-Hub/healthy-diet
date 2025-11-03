@@ -1,0 +1,24 @@
+name: healthy_diet
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.0-290.1.beta
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dynamic_system_colors: ^1.8.0
+  go_router: ^16.3.0
+  http: ^1.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  go_router_builder: ^4.1.1
+  build_runner: ^2.10.1
+
+flutter:
+  uses-material-design: true

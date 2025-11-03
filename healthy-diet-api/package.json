@@ -1,0 +1,22 @@
+{
+  "name": "nitro-app",
+  "private": true,
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "@kamiya4047/eslint-plugin-pretty-import": "^0.1.6",
+    "@stylistic/eslint-plugin": "^5.5.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^9.39.0",
+    "h3": "^1.15.4",
+    "jiti": "^2.6.1",
+    "nitropack": "^2.12.9",
+    "typescript-eslint": "^8.46.2"
+  },
+  "trustedDependencies": [
+    "@parcel/watcher"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "files.exclude": {
+    ".dart_tool": true,
+    "linux": true,
+    "macos": true,
+    "windows": true,
+    "web": true,
+    "healthy_diet.iml": true,
+    "**/.gradle": true,
+  }
+}

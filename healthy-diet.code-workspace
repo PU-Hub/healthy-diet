@@ -1,0 +1,25 @@
+{
+	"extensions": {
+		"recommendations": [
+			"Dart-Code.flutter",
+			"oven.bun-vscode",
+		]
+	},
+	"folders": [
+		{
+			"name": "Backend (nitro)",
+			"path": "./healthy-diet-api"
+		},
+		{
+			"name": "Frontend (flutter)",
+			"path": "./healthy-diet-app"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.vscode": true,
+			"**/.idea": true,
+		}
+	}
+}
