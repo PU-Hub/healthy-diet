@@ -4,8 +4,8 @@ import 'package:dynamic_system_colors/dynamic_system_colors.dart';
 
 import 'package:healthy_diet/router.dart';
 
-class MyWidget extends StatelessWidget {
-  const MyWidget({super.key});
+class HealthyDiet extends StatelessWidget {
+  const HealthyDiet({super.key});
 
   @override
   Widget build(BuildContext context) {

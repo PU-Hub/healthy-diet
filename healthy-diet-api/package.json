@@ -10,6 +10,7 @@
     "@kamiya4047/eslint-plugin-pretty-import": "^0.1.6",
     "@stylistic/eslint-plugin": "^5.5.0",
     "@types/node": "^24.10.0",
+    "drizzle-kit": "^0.31.6",
     "eslint": "^9.39.0",
     "h3": "^1.15.4",
     "jiti": "^2.6.1",
@@ -18,5 +19,8 @@
   },
   "trustedDependencies": [
     "@parcel/watcher"
-  ]
+  ],
+  "dependencies": {
+    "drizzle-orm": "^0.44.7"
+  }
 }
