@@ -9,10 +9,8 @@ import 'package:flutter/material.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:healthy_diet/app/welcome/introduction/page.dart';
-import 'package:healthy_diet/app/welcome/provider.dart';
-import 'package:healthy_diet/utils/extensions/build_context.dart';
-import 'package:healthy_diet/utils/extensions/edge_insets.dart';
-import 'package:provider/provider.dart';
+import 'package:healthy_diet/app/welcome/login/page.dart';
+import 'package:healthy_diet/app/welcome/shell.dart';
 
 part 'router.g.dart';
 
@@ -26,92 +24,54 @@ final router = GoRouter(
   debugLogDiagnostics: true,
 );
 
-/// Shell route for the welcome flow.
+/// Welcome flow shell route configuration.
 ///
-/// Wraps all welcome-related screens with a common UI structure that includes
-/// navigation controls at the bottom. This shell provides a consistent layout
-/// with back and next buttons for moving through the welcome screens.
-///
-/// The bottom sheet navigation adapts based on the current state managed by
-/// [WelcomeProvider], including handling loading states and navigation limits.
+/// Defines the shell route that wraps welcome screens with the [WelcomeShellWidget]
+/// layout. The shell provides consistent navigation UI across all welcome pages.
 @TypedShellRoute<WelcomeShell>(
   routes: [
     TypedGoRoute<WelcomeIntroductionRoute>(
       path: '/welcome/introduction',
     ),
+    TypedGoRoute<WelcomeLoginRoute>(
+      path: '/welcome/login',
+    ),
   ],
 )
 class WelcomeShell extends ShellRouteData {
-  /// Builds the shell layout with navigation controls.
+  /// Builds the shell layout using [WelcomeShellWidget].
   ///
-  /// Creates a scaffold with a bottom sheet containing navigation buttons.
-  /// The navigator parameter contains the nested route content that will be
-  /// displayed in the body of the scaffold.
+  /// Delegates to [WelcomeShellWidget] which provides the actual UI
+  /// implementation with navigation controls.
   @override
   Widget builder(BuildContext context, GoRouterState state, Widget navigator) {
-    return ChangeNotifierProvider<WelcomeProvider>(
-      create: (context) => .new(),
-      builder: (context, child) {
-        return Scaffold(
-          body: child,
-          bottomSheet: Material(
-            elevation: 8,
-            surfaceTintColor: context.colors.surfaceTint,
-            shape: RoundedRectangleBorder(
-              borderRadius: .vertical(top: .circular(24)),
-            ),
-            child: Padding(
-              padding: context.padding.onlyBottom + .fromLTRB(16, 8, 16, 8),
-              child: Consumer<WelcomeProvider>(
-                builder: (context, provider, child) {
-                  final WelcomeProvider(
-                    canNext: canNext,
-                    isLast: isLast,
-                    isLoading: isLoading,
-                    nextRoute: nextRoute,
-                  ) = provider;
-
-                  return Row(
-                    mainAxisAlignment: .spaceBetween,
-                    children: [
-                      PopScope(
-                        canPop: !isLoading && context.canPop(),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: !isLoading && context.canPop() ? () => context.pop() : null,
-                        ),
-                      ),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.arrow_forward),
-                        label: Text('繼續'),
-                        iconAlignment: .end,
-                        style: FilledButton.styleFrom(padding: .only(left: 16, right: 16)),
-                        onPressed: !isLoading && canNext && nextRoute != null
-                            ? () => (isLast ? nextRoute.go : nextRoute.push)(context)
-                            : null,
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-      },
-      child: navigator,
-    );
+    return WelcomeShellWidget(navigator: navigator);
   }
 }
 
-/// Route for the welcome introduction screen.
+/// Route for the welcome introduction page.
 ///
 /// This is the entry point of the welcome flow, displayed at `/welcome/introduction`.
 /// It shows the initial introduction content to new users.
 class WelcomeIntroductionRoute extends GoRouteData with $WelcomeIntroductionRoute {
-  /// Builds the welcome introduction screen.
+  /// Builds the welcome introduction page.
   ///
-  /// Returns a [WelcomeIntroductionScreen] widget that displays the introduction
+  /// Returns a [WelcomeIntroductionPage] widget that displays the introduction
   /// content within the [WelcomeShell] layout.
   @override
-  Widget build(BuildContext context, GoRouterState state) => const WelcomeIntroductionScreen();
+  Widget build(BuildContext context, GoRouterState state) => const WelcomeIntroductionPage();
+}
+
+/// Route for the welcome login page.
+///
+/// Displays the login or authentication screen as part of the welcome flow,
+/// located at `/welcome/login`. Users reach this page after completing the
+/// introduction step.
+class WelcomeLoginRoute extends GoRouteData with $WelcomeLoginRoute {
+  /// Builds the welcome login page.
+  ///
+  /// Returns a [WelcomeLoginPage] widget that displays the login interface
+  /// within the [WelcomeShell] layout.
+  @override
+  Widget build(BuildContext context, GoRouterState state) => const WelcomeLoginPage();
 }

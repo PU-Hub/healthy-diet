@@ -24,4 +24,17 @@ extension EdgeInsetsExtension on EdgeInsets {
   /// final bottomOnly = systemPadding.onlyBottom; // EdgeInsets.only(bottom: 20)
   /// ```
   EdgeInsets get onlyBottom => EdgeInsets.only(bottom: bottom);
+
+  /// Creates new [EdgeInsets] with only the top value from this instance.
+  ///
+  /// Returns an [EdgeInsets] where left, bottom, and right are 0, and top
+  /// retains the value from this instance. Useful for preserving only
+  /// top padding from system UI insets.
+  ///
+  /// Example:
+  /// ```dart
+  /// final systemPadding = MediaQuery.paddingOf(context); // EdgeInsets.all(20)
+  /// final topOnly = systemPadding.onlyTop; // EdgeInsets.only(top: 20)
+  /// ```
+  EdgeInsets get onlyTop => EdgeInsets.only(top: top);
 }
