@@ -1,9 +1,20 @@
 include: package:flutter_lints/flutter.yaml
 
-linter:
-  rules:
-    flutter_style_todos: true
+analyzer:
+  errors:
+    todo: info
+  exclude:
+    - "**.freezed.dart"
+    - "**.g.dart"
 
 formatter:
-  trailing_commas: preserve
   page_width: 120
+  trailing_commas: preserve
+
+linter:
+  rules:
+    - avoid_annotating_with_dynamic
+    - avoid_types_on_closure_parameters
+    - flutter_style_todos
+    - public_member_api_docs
+    - type_annotate_public_apis
