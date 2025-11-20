@@ -35,11 +35,12 @@ class _WelcomeIntroductionPageState extends State<WelcomeIntroductionPage> with 
   ///
   /// Sets up [WelcomeProvider] to navigate to the login page when the user taps the next button. Checks if the context
   /// is mounted before accessing the provider to avoid using disposed widgets.
-  void enableNextRoute() {
+  void configureNextRoute() {
     if (!context.mounted) return;
 
     final provider = context.read<WelcomeProvider>();
     provider.setNextRoute(WelcomeLoginRoute());
+    provider.setNextRouteCallback(null);
     provider.setCanNext(true);
   }
 
@@ -49,7 +50,7 @@ class _WelcomeIntroductionPageState extends State<WelcomeIntroductionPage> with 
   @override
   void initState() {
     super.initState();
-    enableNextRoute();
+    configureNextRoute();
   }
 
   /// Called when returning to this route from a popped route.
@@ -58,7 +59,7 @@ class _WelcomeIntroductionPageState extends State<WelcomeIntroductionPage> with 
   /// ensures the navigation state is properly restored.
   @override
   void didPopNext() {
-    enableNextRoute();
+    configureNextRoute();
   }
 
   /// Subscribes to route changes using [RouteObserver].

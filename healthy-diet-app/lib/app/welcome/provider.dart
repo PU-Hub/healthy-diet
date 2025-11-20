@@ -62,7 +62,7 @@ sealed class _WelcomeProvider extends ChangeNotifier {
   ///
   /// This callback is executed when the user taps the next button, before navigating to the next route. Useful for
   /// async operations like form submission, data validation, or API calls. Notifies listeners when set.
-  void setNextRouteCallback(FutureOr<void> Function() callback) {
+  void setNextRouteCallback(FutureOr<void> Function()? callback) {
     _nextRouteCallback = callback;
     notifyListeners();
   }
