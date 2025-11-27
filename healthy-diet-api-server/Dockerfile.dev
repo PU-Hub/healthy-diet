@@ -1,10 +1,9 @@
 FROM rust:latest
 
+
 RUN apt-get update && apt-get install -y \
     build-essential \
-    cmake \
-    perl \
-    nasm \
+    clang \
     libclang-dev \
     pkg-config \
     libssl-dev \
@@ -13,11 +12,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
-
 RUN cargo binstall cargo-watch -y
 
 WORKDIR /app
 
-ENV LIBCLANG_PATH=/usr/lib/llvm-11/lib
+ENV PORT=3000
 
-CMD ["cargo", "watch","--poll", "-x", "run"]
+CMD ["cargo", "watch", "--poll", "-x", "run"]
