@@ -1,0 +1,307 @@
+openapi: 3.0.0
+
+info:
+  title: Healthy Diet API
+  version: 1.0.0
+  description: |
+    健康飲食的 RESTful API 服務。提供完整的使用者認證、飲食記錄管理、營養分析及
+    個人化建議功能端點。
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地開發伺服器
+  # TODO: 添加生產伺服器連結 URL
+
+tags:
+  - name: Authentication
+    description: 使用者認證與 Session 管理操作，包括註冊、登入及基於 Token 的授權機制。
+  - name: Users
+    description: 使用者個人資料與帳戶管理端點，用於擷取與更新使用者資訊及偏好設定。
+  - name: Diet Records
+    description: 建立、擷取、更新與刪除每日飲食攝取記錄及餐點條目的操作。
+  - name: Nutrition
+    description: 基於使用者飲食模式提供營養分析服務與個人化飲食建議。
+  - name: System
+    description: 系統健康監控與服務可用性端點，用於基礎設施監控與負載平衡。
+
+paths:
+  /auth/login:
+    post:
+      summary: 使用者登入
+      description: |
+        驗證使用者身分並返回用於後續 API 請求的存取 Token 。
+
+        客戶端應提交有效的電子郵件及密碼憑證。成功驗證後，回應將包含必須於受保護端點的
+        `Authorization` 標頭中使用的 JWT Token 。 Token 在 Session 期間內保持有效。
+      operationId: login
+      tags: [Authentication]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequestBody"
+            examples:
+              example:
+                value:
+                  email: example@example.com
+                  password: password
+      responses:
+        "200":
+          description: 驗證成功。返回用於後續授權請求的 JWT 存取 Token 。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              examples:
+                success:
+                  summary: 成功驗證並取得存取 Token 與更新 Token
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+                    refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE1MTYyMzkwMjJ9.XYZ123
+                    expiresIn: 86400
+
+  /auth/register:
+    post:
+      summary: 使用者註冊
+      description: |
+        使用提供的憑證建立新的使用者帳戶。註冊成功後，帳戶即可透過登入端點進行驗證。
+      operationId: register
+      tags: [Authentication]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequestBody"
+            examples:
+              example:
+                value:
+                  email: example@example.com
+                  password: password
+      responses:
+        "200":
+          description: 使用者帳戶建立成功。使用者現在可使用提供的憑證進行驗證。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              examples:
+                success:
+                  summary: 成功註冊並取得存取 Token 與更新 Token
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+                    refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE1MTYyMzkwMjJ9.XYZ123
+                    expiresIn: 86400
+
+  /auth/refresh:
+    post:
+      summary: 更新存取 Token
+      description: |
+        使用有效的更新 Token 產生新的存取 Token ，延長使用者的驗證 Session 而無需重新輸入憑證。
+
+        更新 Token 必須處於有效且未過期狀態。返回具有更新過期時間的新存取 Token 。
+      operationId: refreshToken
+      tags: [Authentication]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequestBody"
+            examples:
+              example:
+                value:
+                  refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE1MTYyMzkwMjJ9.XYZ123
+      responses:
+        "200":
+          description: Token 更新成功。返回具有延長有效期的新 JWT 存取 Token 。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+              examples:
+                success:
+                  summary: 成功更新 Token 並取得新的存取 Token 與更新 Token
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+                    refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE1MTYyMzkwMjJ9.XYZ123
+                    expiresIn: 86400
+        "401":
+          description: 無效或已過期的更新 Token 。使用者必須透過登入端點重新驗證。
+
+  /health:
+    get:
+      summary: API 健康檢查
+      description: |
+        返回 API 服務目前的運作狀態與運行時間指標。提供即時服務可用性狀態、伺服器時間戳記及運行時間統計。
+      operationId: checkHealth
+      tags: [System]
+      responses:
+        "200":
+          description: 服務正常運作。返回目前的健康狀態、系統時間及運行時間指標。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemHealthResponse"
+              examples:
+                healthy:
+                  summary: 服務正常運作且所有系統功能正常
+                  value:
+                    status: ok
+                    time: "2025-12-23T10:30:00.000Z"
+                    uptime: 86400
+        "503":
+          description: 服務無法使用。API 因維護、高負載或系統問題而出現效能降級或暫時中斷。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemHealthResponse"
+              examples:
+                degraded:
+                  summary: 服務出現效能降級或部分功能受限
+                  value:
+                    status: degraded
+                    time: "2025-12-23T10:30:00.000Z"
+                    uptime: 86400
+
+components:
+  schemas:
+    LoginRequestBody:
+      type: object
+      description: 包含驗證憑證的使用者登入請求資料。
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          description: |
+            作為登入識別碼的使用者電子郵件地址。
+
+            必須與系統中已註冊的帳戶相符。
+          example: example@example.com
+        password:
+          type: string
+          format: password
+          description: |
+            用於驗證的帳戶密碼。
+
+            必須與提供的電子郵件地址所關聯的密碼相符。
+          example: password
+    RegisterRequestBody:
+      type: object
+      description: 包含建立帳戶所需憑證的使用者註冊請求資料。
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          description: |
+            作為唯一識別碼及登入憑證的使用者電子郵件地址。
+
+            必須為有效的電子郵件格式且尚未在系統中註冊。
+          example: example@example.com
+        password:
+          type: string
+          format: password
+          description: |
+            符合最低安全要求的帳戶密碼。
+
+            通常需要符合最小長度及字元複雜度標準。
+          example: password
+    RefreshTokenRequestBody:
+      type: object
+      description: 包含用於 Session 更新之更新 Token 的 Token 更新請求資料。
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: |
+            先前於驗證時核發的有效更新 Token 。
+
+            用於在不重新驗證的情況下取得新的存取 Token 。
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE1MTYyMzkwMjJ9.XYZ123
+    AuthResponse:
+      type: object
+      description: 包含存取 Token 、更新 Token 及 Session 資訊的驗證回應。
+      required:
+        - token
+        - refreshToken
+        - expiresIn
+      properties:
+        token:
+          type: string
+          description: |
+            用於已驗證 API 請求的 JWT 存取 Token 。
+
+            於受保護端點中必須以 'Bearer <token>' 格式包含在 Authorization 標頭中。
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        refreshToken:
+          type: string
+          description: |
+            用於在不重新驗證的情況下取得新存取 Token 的更新 Token 。
+
+            應安全儲存，並於存取 Token 過期時用於 /auth/refresh 端點。
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE1MTYyMzkwMjJ9.XYZ123
+        expiresIn:
+          type: integer
+          description: |
+            Token 自核發起的有效期限（以秒為單位）。
+
+            客戶端應在過期前更新或重新驗證。
+          example: 86400
+    SystemHealthResponse:
+      type: object
+      description: 包含服務狀態與運作指標的健康檢查回應。
+      required:
+        - status
+        - time
+        - uptime
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, fail]
+          description: |
+            API 服務目前的運作狀態：
+            - `ok` - 所有系統正常運作，完整功能可用
+            - `degraded` - 部分功能可用，出現效能問題或服務限制
+            - `fail` - 服務無法使用或發生嚴重系統故障
+          example: ok
+        time:
+          type: string
+          format: date-time
+          description: |
+            以 ISO 8601 日期時間字串格式表示的 UTC 時區伺服器目前時間戳記。
+
+            用於時間同步驗證及稽核日誌記錄。
+          example: "2025-12-23T10:30:00.000Z"
+        uptime:
+          type: number
+          description: |
+            自上次重新啟動以來的服務運行時間（以秒為單位）。
+
+            指示系統穩定性及近期部署活動。
+          example: 86400
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        用於受保護端點的基於 JWT 的驗證機制。 Token 透過登入端點取得，
+        並且必須包含在已驗證請求的 Authorization 標頭中。
+
+        **標頭格式：**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        ** Token 取得：**
+        透過 `/auth/login` 端點進行驗證以接收 JWT Token 。
+
+        ** Token 有效期限：**
+        Token 自核發起 24 小時內保持有效。過期後需重新驗證。
+
+security:
+  - bearerAuth: []
