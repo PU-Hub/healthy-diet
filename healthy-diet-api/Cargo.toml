@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"  
 
 [dependencies]
+argon2 = "0.5"
 axum = "0.8.7"  
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.6.7", features = ["trace"] }
@@ -12,5 +13,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid"] }
 oauth2 = {version  = "4.4.0",features = ["reqwest"]} 
 reqwest = { version = "0.12.24", features = ["json", "rustls-tls"] }
+uuid = { version = "1.19.0", features = ["v4", "serde"] }
+validator = { version = "0.20.0", features = ["derive"] }
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
