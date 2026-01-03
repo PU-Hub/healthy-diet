@@ -7,7 +7,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    common::{model::RegisterPayload, register::register_handler},
+    api::{model::RegisterPayload, register::register_handler},
     model::AppState,
 };
 

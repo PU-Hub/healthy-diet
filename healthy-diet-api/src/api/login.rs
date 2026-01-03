@@ -1,5 +1,5 @@
 use crate::{
-    common::model::{AuthResponse, ErrorResponse, LoginPayload, User, UserProfile},
+    api::model::{AuthResponse, ErrorResponse, LoginPayload, User, UserProfile},
     model::AppState,
     utils::{hash::verify_password, jwt::sign_jwt},
 };

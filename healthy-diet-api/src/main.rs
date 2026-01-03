@@ -1,6 +1,6 @@
 use healthy_diet_api_server::{model::AppState, router::create_app};
-use sqlx::PgPool;
-use std::{env, net::SocketAddr, sync::Arc};
+use sqlx::postgres::PgPoolOptions;
+use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -16,7 +16,12 @@ async fn main() {
         .init();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPool::connect(&database_url)
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .acquire_timeout(Duration::from_secs(3))
+        .idle_timeout(Duration::from_secs(60))
+        .max_lifetime(Duration::from_secs(1800))
+        .connect(&database_url)
         .await
         .expect("Failed to connect to DB");
 

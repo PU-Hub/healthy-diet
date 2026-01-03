@@ -64,3 +64,32 @@ pub struct RefreshTokenPayload {
     #[serde(rename = "refreshToken")]
     pub refresh_token: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateProfilePayload {
+    pub nickname: Option<String>,
+    pub height: Option<f64>,
+    pub weight: Option<f64>,
+    pub dietary_restrictions: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AiConsultationRecord {
+    pub id: Uuid,
+    pub question: String,
+    pub ai_response: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserDetailResponse {
+    pub id: String,
+    pub email: String,
+    pub nickname: Option<String>,
+    pub avatar_url: Option<String>,
+    pub height: Option<f64>,
+    pub weight: Option<f64>,
+    pub dietary_restrictions: Option<String>,
+    pub ai_consultations: Vec<AiConsultationRecord>,
+}

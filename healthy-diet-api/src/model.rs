@@ -14,4 +14,5 @@ impl APIRouter {
     pub const REGISTER: &'static str = "/auth/register";
     pub const LOGIN: &'static str = "/auth/login";
     pub const REFRESH_TOKEN: &'static str = "/auth/refresh";
+    pub const PROFILE: &'static str = "/api/user/profile";
 }
