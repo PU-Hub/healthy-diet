@@ -58,3 +58,9 @@ pub struct UserProfile {
 pub struct ErrorResponse {
     pub error: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct RefreshTokenPayload {
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: String,
+}

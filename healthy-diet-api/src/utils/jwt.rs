@@ -1,4 +1,4 @@
-use jsonwebtoken::{EncodingKey, Header, encode};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -48,4 +48,13 @@ pub fn sign_jwt(
     let refresh_token = encode(&Header::default(), &refresh_claims, &key)?;
 
     Ok((access_token, refresh_token, access_expires_in))
+}
+
+pub fn decode_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let key = DecodingKey::from_secret(secret.as_bytes());
+
+    let token_data = decode::<Claims>(token, &key, &Validation::default())?;
+
+    Ok(token_data.claims)
 }

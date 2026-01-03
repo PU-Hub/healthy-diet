@@ -1,5 +1,5 @@
 use crate::{
-    common::{login::login_handler, register::register_handler},
+    common::{login::login_handler, refresh::refresh_handler, register::register_handler},
     discord::login::{discord_callback, login_discord},
     model::{APIRouter, AppState},
 };
@@ -17,6 +17,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::DISOCRD_CALLBACK, get(discord_callback))
         .route(APIRouter::REGISTER, post(register_handler))
         .route(APIRouter::LOGIN, post(login_handler))
+        .route(APIRouter::REFRESH_TOKEN, post(refresh_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
