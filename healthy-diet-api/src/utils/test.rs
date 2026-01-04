@@ -8,12 +8,12 @@ use uuid::Uuid;
 
 use crate::{
     api::{model::RegisterPayload, register::register_handler},
-    model::AppState,
+    model::{AppState, ENVKey},
 };
 
 pub async fn setup_db() -> Arc<AppState> {
     dotenvy::dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var(ENVKey::DATABASE_URL).expect("DATABASE_URL must be set");
     let pool = PgPool::connect(&database_url)
         .await
         .expect("Failed to connect to DB");

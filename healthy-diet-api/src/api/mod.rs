@@ -1,3 +1,4 @@
+pub mod consult;
 pub mod login;
 pub mod model;
 pub mod refresh;

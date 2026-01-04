@@ -1,4 +1,7 @@
-use healthy_diet_api_server::{model::AppState, router::create_app};
+use healthy_diet_api_server::{
+    model::{AppState, ENVKey},
+    router::create_app,
+};
 use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -15,7 +18,7 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = env::var(ENVKey::DATABASE_URL).expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .acquire_timeout(Duration::from_secs(3))

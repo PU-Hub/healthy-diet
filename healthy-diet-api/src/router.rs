@@ -1,5 +1,6 @@
 use crate::{
     api::{
+        consult::consult_handler,
         login::login_handler,
         refresh::refresh_handler,
         register::register_handler,
@@ -27,6 +28,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             APIRouter::PROFILE,
             get(get_profile_handler).put(update_user_profile_handler),
         )
+        .route(APIRouter::AI_CONSULT, post(consult_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

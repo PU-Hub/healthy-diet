@@ -22,8 +22,8 @@ pub struct RegisterPayload {
 
     #[validate(length(
         min = 2,
-        max = 12,
-        message = "length of nicname must between 2 and 12 characters"
+        max = 20,
+        message = "length of nicname must between 2 and 20 characters"
     ))]
     pub nickname: Option<String>,
 
@@ -92,4 +92,14 @@ pub struct UserDetailResponse {
     pub weight: Option<f64>,
     pub dietary_restrictions: Option<String>,
     pub ai_consultations: Vec<AiConsultationRecord>,
+}
+
+#[derive(Deserialize)]
+pub struct ConsultRequest {
+    pub question: String,
+}
+
+#[derive(Serialize)]
+pub struct ConsultResponse {
+    pub reply: String,
 }

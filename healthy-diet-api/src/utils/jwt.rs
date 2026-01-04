@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::api::model::ErrorResponse;
+use crate::{api::model::ErrorResponse, model::ENVKey};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -37,7 +37,7 @@ pub fn sign_jwt(
     let access_exp = now + access_expires_in;
     let refresh_exp = now + refresh_expires_in;
 
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let secret = env::var(ENVKey::JWT_SECRET).expect("JWT_SECRET must be set");
     let key = EncodingKey::from_secret(secret.as_bytes());
 
     let access_claims = Claims {
@@ -62,7 +62,7 @@ pub fn sign_jwt(
 }
 
 pub fn decode_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let secret = env::var(ENVKey::JWT_SECRET).expect("JWT_SECRET must be set");
     let key = DecodingKey::from_secret(secret.as_bytes());
     let token_data = decode::<Claims>(token, &key, &Validation::default())?;
     Ok(token_data.claims)
