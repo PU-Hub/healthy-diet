@@ -174,7 +174,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserDetailResponse"
         "400":
-          description: 資料格式錯誤                 
+          description: 資料格式錯誤 
+  /api/consult:
+    post:
+      summary: AI 營養諮詢
+      description: |
+        發送健康或飲食相關問題給 AI。
+        系統會自動讀取該使用者的個人檔案 (身高、體重、飲食禁忌) 並附加在提示詞中，以獲得個人化的建議。
+        對話紀錄會自動儲存至資料庫。
+      operationId: consultAI
+      tags: [Consultation]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsultRequest"
+      responses:
+        "200":
+          description: 諮詢成功，回傳 AI 的建議
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsultResponse"
+        "401":
+          description: 未授權 (Token 無效或過期)
+        "429":
+          description: 請求過於頻繁 (達到 AI API 限制)
+        "500":
+          description: 伺服器內部錯誤 (資料庫錯誤或 AI 服務連線失敗)                
 
 components:
   schemas:
@@ -352,6 +382,28 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/AiConsultationRecord"
+    ConsultRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: 使用者想問的問題
+          example: "我剛跑完步，有乳糖不耐症，晚餐推薦吃什麼？"
+
+    # [新增] 諮詢回應
+    ConsultResponse:
+      type: object
+      required:
+        - reply
+      properties:
+        reply:
+          type: string
+          description: AI 營養師的回覆內容
+          example: "運動後建議補充優質蛋白質。考慮到您有乳糖不耐症，建議攝取豆漿、雞胸肉或水煮蛋，避免飲用牛奶。"
 
   securitySchemes:
     bearerAuth:
