@@ -3,17 +3,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-
     volumes:
       - .:/app
       - cargo-cache:/usr/local/cargo/registry
       - target-cache:/app/target
+  api:
+    build: .
 
+    ports:
+      - "3000:3000"
+
+    restart: always
     env_file:
       - .env
-
 volumes:
   cargo-cache:
   target-cache:
