@@ -1,21 +1,15 @@
+version: '3.8'
+
 services:
-  healthy-diet-api-server:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - .:/app
-      - cargo-cache:/usr/local/cargo/registry
-      - target-cache:/app/target
-  api:
-    build: .
+      dockerfile: Dockerfile
 
     ports:
       - "3000:3000"
 
     restart: always
+
     env_file:
       - .env
-volumes:
-  cargo-cache:
-  target-cache:
