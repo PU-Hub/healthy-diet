@@ -16,6 +16,7 @@ dependencies:
   form_validation: ^3.2.0
   material_symbols_icons: ^4.2874.0
   image_picker: ^1.2.1
+  flutter_local_notifications: ^21.0.0
 
 dev_dependencies:
   flutter_test:

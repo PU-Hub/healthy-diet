@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:healthy_diet/app.dart';
 import 'main.dart';
-import 'SideMenu.dart';
+import 'side_menu.dart';
 import 'package:flutter/material.dart';
 
 class ClockPage extends StatelessWidget {

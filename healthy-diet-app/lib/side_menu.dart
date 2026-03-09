@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:healthy_diet/app.dart';
 import 'main.dart';
-import 'ClockPage.dart';
+import 'clock_page.dart';
 
 class SideMenu extends StatelessWidget {
   const SideMenu({super.key});

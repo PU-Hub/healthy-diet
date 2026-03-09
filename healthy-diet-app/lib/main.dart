@@ -3,7 +3,7 @@ import 'package:healthy_diet/app.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
-import 'SideMenu.dart';
+import 'side_menu.dart';
 import 'package:image_picker/image_picker.dart';
 
 void main() {
@@ -25,10 +25,24 @@ class _reHomeState extends State<reHome> {
   bool _isChatActive = false;
 
   final TextEditingController _textController = TextEditingController();
+
+  final ScrollController _scrollController = ScrollController();
+
   final List<Map<String, String>> _messages = [];
 
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
+
+  void setError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _messages.add({
+        "role": "ai",
+        "text": message,
+      });
+      _isChatActive = true;
+    });
+  }
 
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -67,13 +81,17 @@ class _reHomeState extends State<reHome> {
       base64Image = base64Encode(imageBytes);
     }
 
-    final url = Uri.parse("http://127.0.0.1:3000/chat");
+    final url = Uri.parse("http://localhost:3000/api/consult");
 
     try {
+      String tempToken = "";
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"message": text, "image": base64Image}),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $tempToken",
+        },
+        body: jsonEncode({"question": text, "image": base64Image}),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -85,24 +103,29 @@ class _reHomeState extends State<reHome> {
         });
       } else {
         print("請求失敗:${response.statusCode}");
-        setState(() {
-          _messages.add({"role": "ai", "text": "連線錯誤"});
-        });
+        setError("等一下喔，我要處理其他事，馬上回來");
       }
     } catch (e) {
       print("發生錯誤:$e");
-      setState(() {
-        _messages.add({"role": "ai", "text": "連線錯誤"});
-      });
+      setError("網路有點不好欸，我修一下");
     }
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
+
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       drawerScrimColor: Colors.transparent,
 
       appBar: AppBar(
@@ -129,109 +152,130 @@ class _reHomeState extends State<reHome> {
       ),
 
       drawer: const SideMenu(),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          child: Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                Expanded(
+                  child: _isChatActive ? _buildChatContent() : _buildWelcomeContent(),
+                ),
 
-      body: Container(
-        color: Colors.white,
-        child: Column(
-          children: [
-            Expanded(
-              child: _isChatActive ? _buildChatContent() : _buildWelcomeContent(),
-            ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOutCubic,
 
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOutCubic,
-
-              margin: EdgeInsets.only(
-                bottom: _isChatActive ? 0 : MediaQuery.of(context).size.height * 0.25,
-              ),
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_selectedImage != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Stack(
-                        children: [
-                          Image.file(_selectedImage!),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red),
-                              onPressed: () => setState(() => _selectedImage = null),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 20),
-                        Icon(Icons.edit, color: Colors.grey[600], size: 20),
-                        const SizedBox(width: 10),
-
-                        IconButton(
-                          icon: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.grey,
-                          ),
-                          onPressed: _pickImage,
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _textController,
-                            onSubmitted: _handleSubmitted,
-
-                            onTap: () {
-                              setState(() {
-                                _isChatActive = true;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              hintText: _isChatActive ? "請輸入內容或是傳照片.." : "今天你想吃什麼",
-                              hintStyle: TextStyle(color: Colors.grey[600]),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-
-                        IconButton(
-                          icon: const Icon(Icons.send, color: Colors.blue),
-                          onPressed: () => _handleSubmitted(_textController.text),
-                        ),
-                      ],
-                    ),
+                  margin: EdgeInsets.only(
+                    bottom: _isChatActive ? 0 : MediaQuery.of(context).size.height * 0.25,
                   ),
-                ],
-              ),
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.white,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_selectedImage != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Stack(
+                            children: [
+                              Image.file(_selectedImage!),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () => setState(() => _selectedImage = null),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 20),
+                            Icon(Icons.edit, color: Colors.grey[600], size: 20),
+                            const SizedBox(width: 10),
+
+                            IconButton(
+                              icon: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.grey,
+                              ),
+                              onPressed: _pickImage,
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _textController,
+                                onSubmitted: _handleSubmitted,
+
+                                onTap: () {
+                                  setState(() {
+                                    _isChatActive = true;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  hintText: _isChatActive ? "請輸入內容或是傳照片.." : "今天你想吃什麼",
+                                  hintStyle: TextStyle(color: Colors.grey[600]),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+
+                            IconButton(
+                              icon: const Icon(Icons.send, color: Colors.blue),
+                              onPressed: () => _handleSubmitted(_textController.text),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
+  String _useName = "friend";
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return "早安，醒來有沒有精神啊";
+    } else if (hour >= 12 && hour < 17) {
+      return "午安，今天已經過一半了";
+    } else if (hour >= 17 && hour < 23) {
+      return "晚安，今天過得如何";
+    } else {
+      return "夜深了，快點去睡吧";
+    }
+  }
+
   Widget _buildWelcomeContent() {
+    String displayName = _useName.isEmpty ? "" : ",$_useName";
+    String greeting = _getGreeting();
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            "早安,xxx",
+          Text(
+            "$greeting,$displayName",
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -255,6 +299,7 @@ class _reHomeState extends State<reHome> {
 
   Widget _buildChatContent() {
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(20),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
