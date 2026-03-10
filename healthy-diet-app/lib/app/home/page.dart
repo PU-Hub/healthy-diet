@@ -10,46 +10,19 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: context.padding.onlyBottom,
-      child: Column(
-        crossAxisAlignment: .stretch,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: context.padding.onlyTop + .only(top: kToolbarHeight),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: .start,
-                  spacing: 32,
-                  children: [
-                    HeadLineText.large('午安，〇〇〇', weight: .bold),
-                    GridView.count(
-                      padding: .zero,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisExtent: 96,
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      children: [Card.filled(), Card.filled(), Card.filled(), Card.filled()],
-                    ),
-                    SegmentedListSection(
-                      children: List.generate(
-                        6,
-                        (index) => SegmentedListTile(
-                          title: Text('聊天歷史 $index'),
-                          visualDensity: .compact,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return SingleChildScrollView(
+      padding: context.padding.onlyTop + .symmetric(vertical: 16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: Column(
+          crossAxisAlignment: .start,
+          spacing: 32,
+          children: [
+            Hero(
+              tag: 'welcome_text',
+              child: HeadLineText.large('午安，〇〇〇', weight: .bold),
             ),
-          ),
-          Padding(
-            padding: .symmetric(horizontal: 24, vertical: 16),
-            child: Hero(
+            Hero(
               tag: 'chat_input',
               child: TextField(
                 decoration: InputDecoration(
@@ -66,8 +39,25 @@ class HomePage extends StatelessWidget {
                 },
               ),
             ),
-          ),
-        ],
+            GridView.count(
+              padding: .zero,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisExtent: 96,
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              children: [Card.filled(), Card.filled(), Card.filled(), Card.filled()],
+            ),
+            SegmentedListSection(
+              children: List.generate(
+                6,
+                (index) => SegmentedListTile(
+                  title: Text('聊天歷史 $index'),
+                  visualDensity: .compact,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
