@@ -30,8 +30,7 @@ class _AppShellWidgetState extends State<AppShellWidget> {
           style: IconButton.styleFrom(
             backgroundColor: context.colors.surfaceContainer,
             shape: RoundedRectangleBorder(
-              side: .new(
-                color: context.colors.surfaceContainerHigh              ),
+              side: .new(color: context.colors.surfaceContainerHigh),
               borderRadius: .circular(32),
             ),
             shadowColor: context.colors.shadow,

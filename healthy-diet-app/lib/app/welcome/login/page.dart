@@ -5,6 +5,9 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:form_validation/form_validation.dart';
+import 'package:healthy_diet/api/client.dart';
+import 'package:healthy_diet/api/models/authentication/login_request_body.dart';
+import 'package:healthy_diet/app/provider.dart';
 import 'package:healthy_diet/app/welcome/provider.dart';
 import 'package:healthy_diet/router.dart';
 import 'package:healthy_diet/utils/extensions/build_context.dart';
@@ -31,15 +34,23 @@ class _WelcomeLoginPageState extends State<WelcomeLoginPage> with RouteAware {
     if (!context.mounted) return;
 
     final provider = context.read<WelcomeProvider>();
-    provider.setNextRoute(WelcomeIntroductionRoute());
+    provider.setNextRoute(HomeRoute());
+    provider.setIsLast(true);
     provider.setNextRouteCallback(login);
     provider.setCanNext(false);
   });
 
   Future<void> login() async {
-    // TODO(kamiya): implement account login logic
-    await Future.delayed(const Duration(seconds: 2));
-    throw Exception('登入失敗');
+    final result = await api.login(
+      LoginRequestBody(
+        email: _emailController.text,
+        password: _passwordController.text,
+      ),
+    );
+
+    if (!mounted) return;
+
+    context.read<AppProvider>().setAuth(result);
   }
 
   @override

@@ -21,9 +21,7 @@ class _WelcomeIntroductionPageState extends State<WelcomeIntroductionPage> with 
     if (!context.mounted) return;
 
     final provider = context.read<WelcomeProvider>();
-    // TODO(kamiya4047): goto WelcomeLoginRoute after login implementation
-    provider.setNextRoute(HomeRoute());
-    provider.setIsLast(true);
+    provider.setNextRoute(WelcomeLoginRoute());
     provider.setNextRouteCallback(null);
     provider.setCanNext(true);
   });

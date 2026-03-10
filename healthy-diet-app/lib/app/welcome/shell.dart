@@ -1,5 +1,7 @@
 library;
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:healthy_diet/app/welcome/provider.dart';
@@ -43,6 +45,7 @@ class WelcomeShellWidget extends StatelessWidget {
                         await nextRouteCallback();
                       } catch (e) {
                         if (!context.mounted) return;
+                        log(e.toString());
                         context.scaffold.showSnackBar(SnackBar(content: Text(e.toString())));
                         return;
                       } finally {

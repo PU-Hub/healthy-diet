@@ -2,7 +2,9 @@ library;
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:healthy_diet/app/provider.dart';
 import 'package:healthy_diet/router.dart';
+import 'package:provider/provider.dart';
 
 /// Root application widget with dynamic theming.
 class HealthyDiet extends StatelessWidget {
@@ -27,11 +29,14 @@ class HealthyDiet extends StatelessWidget {
           sliderTheme: SliderThemeData(year2023: false),
         );
 
-        return MaterialApp.router(
-          title: '健康飲食',
-          routerConfig: router,
-          theme: light,
-          darkTheme: dark,
+        return ChangeNotifierProvider<AppProvider>.value(
+          value: appProvider,
+          child: MaterialApp.router(
+            title: '健康飲食',
+            routerConfig: router,
+            theme: light,
+            darkTheme: dark,
+          ),
         );
       },
     );

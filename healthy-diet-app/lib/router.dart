@@ -3,8 +3,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:healthy_diet/app/chat/page.dart';
-import 'package:healthy_diet/app/shell.dart';
 import 'package:healthy_diet/app/home/page.dart';
+import 'package:healthy_diet/app/provider.dart';
+import 'package:healthy_diet/app/shell.dart';
 import 'package:healthy_diet/app/welcome/introduction/page.dart';
 import 'package:healthy_diet/app/welcome/login/page.dart';
 import 'package:healthy_diet/app/welcome/register/page.dart';
@@ -19,7 +20,14 @@ final routeObserver = RouteObserver<PageRoute>();
 
 /// Main application router.
 final router = GoRouter(
-  initialLocation: WelcomeIntroductionRoute().location,
+  initialLocation: HomeRoute().location,
+  refreshListenable: appProvider,
+  redirect: (context, state) {
+    final isWelcome = state.matchedLocation.startsWith('/welcome');
+    if (appProvider.isAuthenticated && isWelcome) return HomeRoute().location;
+    if (!appProvider.isAuthenticated && !isWelcome) return WelcomeIntroductionRoute().location;
+    return null;
+  },
   routes: $appRoutes,
   debugLogDiagnostics: true,
 );

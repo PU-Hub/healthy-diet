@@ -51,3 +51,4 @@ windows
 
 # Generated files
 **/*.g.dart
+**/*.mapper.dart

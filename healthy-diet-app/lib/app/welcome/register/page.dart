@@ -3,6 +3,9 @@ library;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:form_validation/form_validation.dart';
+import 'package:healthy_diet/api/client.dart';
+import 'package:healthy_diet/api/models/authentication/register_request_body.dart';
+import 'package:healthy_diet/app/provider.dart';
 import 'package:healthy_diet/app/welcome/provider.dart';
 import 'package:healthy_diet/router.dart';
 import 'package:healthy_diet/utils/extensions/build_context.dart';
@@ -30,14 +33,22 @@ class _WelcomeRegisterPageState extends State<WelcomeRegisterPage> with RouteAwa
     if (!context.mounted) return;
 
     final provider = context.read<WelcomeProvider>();
-    provider.setNextRoute(WelcomeIntroductionRoute());
+    provider.setNextRoute(HomeRoute());
+    provider.setIsLast(true);
     provider.setCanNext(false);
   });
 
   Future<void> register() async {
-    // TODO(kamiya): implement account registration logic
-    await Future.delayed(const Duration(seconds: 2));
-    throw Exception('註冊失敗');
+    final result = await api.register(
+      RegisterRequestBody(
+        email: _emailController.text,
+        password: _passwordController.text,
+      ),
+    );
+
+    if (!mounted) return;
+
+    context.read<AppProvider>().setAuth(result);
   }
 
   @override

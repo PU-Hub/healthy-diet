@@ -13,14 +13,17 @@ class HomePage extends StatelessWidget {
     return SingleChildScrollView(
       padding: context.padding.onlyTop + .symmetric(vertical: 16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        padding: const .all(24),
         child: Column(
           crossAxisAlignment: .start,
           spacing: 32,
           children: [
-            Hero(
-              tag: 'welcome_text',
-              child: HeadLineText.large('午安，〇〇〇', weight: .bold),
+            Padding(
+              padding: const .symmetric(horizontal: 8),
+              child: Hero(
+                tag: 'welcome_text',
+                child: HeadLineText.large('午安，〇〇〇', weight: .bold),
+              ),
             ),
             Hero(
               tag: 'chat_input',
