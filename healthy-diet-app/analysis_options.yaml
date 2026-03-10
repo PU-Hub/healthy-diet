@@ -16,5 +16,4 @@ linter:
     - avoid_annotating_with_dynamic
     - avoid_types_on_closure_parameters
     - flutter_style_todos
-    - public_member_api_docs
     - type_annotate_public_apis

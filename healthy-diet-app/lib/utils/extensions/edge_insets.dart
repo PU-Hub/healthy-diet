@@ -1,40 +1,20 @@
-/// Extensions on [EdgeInsets] for common transformation operations.
-///
-/// Provides utility methods for deriving new [EdgeInsets] from existing
-/// instances, enabling more concise padding and margin calculations.
+/// Extensions on [EdgeInsets] for extracting individual sides.
 library;
 
 import 'package:flutter/material.dart';
 
-/// Extension methods for [EdgeInsets] transformations.
-///
-/// Adds convenient getters for creating modified versions of existing
-/// [EdgeInsets] instances, particularly useful when working with
-/// [MediaQuery] padding and combining multiple insets.
 extension EdgeInsetsExtension on EdgeInsets {
-  /// Creates new [EdgeInsets] with only the bottom value from this instance.
+  /// Returns a new [EdgeInsets] with only the bottom value preserved.
   ///
-  /// Returns an [EdgeInsets] where left, top, and right are 0, and bottom
-  /// retains the value from this instance. Useful for preserving only
-  /// bottom padding from system UI insets.
-  ///
-  /// Example:
   /// ```dart
-  /// final systemPadding = MediaQuery.paddingOf(context); // EdgeInsets.all(20)
-  /// final bottomOnly = systemPadding.onlyBottom; // EdgeInsets.only(bottom: 20)
+  /// context.padding.onlyBottom // EdgeInsets.only(bottom: <system bottom>)
   /// ```
   EdgeInsets get onlyBottom => EdgeInsets.only(bottom: bottom);
 
-  /// Creates new [EdgeInsets] with only the top value from this instance.
+  /// Returns a new [EdgeInsets] with only the top value preserved.
   ///
-  /// Returns an [EdgeInsets] where left, bottom, and right are 0, and top
-  /// retains the value from this instance. Useful for preserving only
-  /// top padding from system UI insets.
-  ///
-  /// Example:
   /// ```dart
-  /// final systemPadding = MediaQuery.paddingOf(context); // EdgeInsets.all(20)
-  /// final topOnly = systemPadding.onlyTop; // EdgeInsets.only(top: 20)
+  /// context.padding.onlyTop // EdgeInsets.only(top: <system top>)
   /// ```
   EdgeInsets get onlyTop => EdgeInsets.only(top: top);
 }

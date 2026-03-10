@@ -1,103 +1,58 @@
-/// Welcome login page for user authentication.
-///
-/// This page is part of the welcome onboarding flow and handles user authentication or login. It integrates with
-/// [WelcomeProvider] to manage navigation state within the welcome flow.
 library;
 
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-
 import 'package:form_validation/form_validation.dart';
-import 'package:material_symbols_icons/symbols.dart';
-import 'package:provider/provider.dart';
-
 import 'package:healthy_diet/app/welcome/provider.dart';
 import 'package:healthy_diet/router.dart';
 import 'package:healthy_diet/utils/extensions/build_context.dart';
 import 'package:healthy_diet/utils/extensions/edge_insets.dart';
 import 'package:healthy_diet/widgets/typography.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
 
-/// The welcome login page widget.
-///
-/// Displays login or authentication interface as part of the welcome flow. This page is shown after users complete the
-/// introduction screen and allows them to authenticate before proceeding.
+/// Login screen for the welcome flow.
 class WelcomeLoginPage extends StatefulWidget {
-  /// Creates a welcome login page.
   const WelcomeLoginPage({super.key});
 
   @override
   State<WelcomeLoginPage> createState() => _WelcomeLoginPageState();
 }
 
-/// State for [WelcomeLoginPage].
-///
-/// Manages the login page lifecycle and navigation configuration. Implements [RouteAware] to respond to route
-/// navigation events, ensuring the navigation state is properly configured when returning to this page.
 class _WelcomeLoginPageState extends State<WelcomeLoginPage> with RouteAware {
-  /// Form key for validation state management.
   final _formKey = GlobalKey<FormState>();
-
-  /// Controls password field visibility.
   bool _obscurePassword = true;
-
-  /// Text controller for email input field.
   final _emailController = TextEditingController();
-
-  /// Text controller for password input field.
   final _passwordController = TextEditingController();
 
-  /// Configures the navigation state for this page.
-  ///
-  /// Sets up the [WelcomeProvider] with login-specific navigation behavior:
-  /// - Disables the next button initially (enabled via form validation)
-  /// - Sets [login] as the callback to execute before navigation
-  /// - Checks if the context is mounted before accessing the provider
-  void configureNextRoute() {
+  void configureNextRoute() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (!context.mounted) return;
 
     final provider = context.read<WelcomeProvider>();
     provider.setNextRoute(WelcomeIntroductionRoute());
     provider.setNextRouteCallback(login);
     provider.setCanNext(false);
-  }
+  });
 
-  /// Performs user login with provided credentials.
-  ///
-  /// Executes when the user taps the next button with valid form data. Currently throws an exception for demonstration.
-  /// Should be replaced with actual authentication logic.
-  ///
-  /// Throws an [Exception] if login fails.
   Future<void> login() async {
     // TODO(kamiya): implement account login logic
     await Future.delayed(const Duration(seconds: 2));
     throw Exception('登入失敗');
   }
 
-  /// Initializes the state and configures navigation.
-  ///
-  /// Called once when the widget is first created. Sets up the initial navigation configuration, disabling the next
-  /// button until login is complete.
   @override
   void initState() {
     super.initState();
     configureNextRoute();
   }
 
-  /// Called when returning to this route from a popped route.
-  ///
-  /// Re-configures navigation when the user navigates back to the login page from a subsequent screen. This ensures the
-  /// navigation state is properly restored with the next button disabled.
   @override
   void didPopNext() {
     configureNextRoute();
   }
 
-  /// Subscribes to route changes using [RouteObserver].
-  ///
-  /// Called when a dependency of this state object changes. Registers this state with the [routeObserver] to receive
-  /// route lifecycle callbacks like [didPopNext].
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -108,10 +63,6 @@ class _WelcomeLoginPageState extends State<WelcomeLoginPage> with RouteAware {
     }
   }
 
-  /// Unsubscribes from route changes.
-  ///
-  /// Called when this state object is permanently removed. Unregisters from the [routeObserver] to prevent memory
-  /// leaks.
   @override
   void dispose() {
     routeObserver.unsubscribe(this);

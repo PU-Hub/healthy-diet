@@ -1,7 +1,6 @@
 //這個先是第一版
 import 'package:flutter/material.dart';
-import 'package:healthy_diet/app.dart';
-import 'main.dart';
+
 import 'clock_page.dart';
 
 class SideMenu extends StatelessWidget {
@@ -75,7 +74,6 @@ class SideMenu extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const ClockPage()),
-                    //這個是要之後方便連接"最近飲食資料"的頁面
                   );
                 },
               ),
@@ -89,7 +87,6 @@ class SideMenu extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const ClockPage()),
-                    //這個是要之後方便連接"編輯個人資料"的頁面
                   );
                 },
               ),

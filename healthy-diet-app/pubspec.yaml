@@ -1,6 +1,6 @@
 name: healthy_diet
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -9,14 +9,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  dynamic_system_colors: ^1.8.0
-  go_router: ^16.3.0
+  go_router: ^17.1.0
   http: ^1.5.0
   provider: ^6.1.5+1
   form_validation: ^3.2.0
   material_symbols_icons: ^4.2874.0
   image_picker: ^1.2.1
-  flutter_local_notifications: ^21.0.0
+  dynamic_color: ^1.8.1
+  awesome_notifications: ^0.11.0
+  awesome_notifications_core: ^0.10.1
+  material_segmented_list: ^1.0.5
 
 dev_dependencies:
   flutter_test:
