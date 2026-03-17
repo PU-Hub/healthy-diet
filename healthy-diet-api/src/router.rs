@@ -2,6 +2,7 @@ use crate::{
     api::{
         consult::consult_handler,
         login::login_handler,
+        ping::ping_handler,
         refresh::refresh_handler,
         register::register_handler,
         user::{get_profile_handler, update_user_profile_handler},
@@ -19,6 +20,7 @@ use tower_http::trace::TraceLayer;
 pub fn create_app(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", get(async || "Connect Success!"))
+        .route("/ping", get(ping_handler))
         .route(APIRouter::DISOCRD_LOGIN, get(login_discord))
         .route(APIRouter::DISOCRD_CALLBACK, get(discord_callback))
         .route(APIRouter::REGISTER, post(register_handler))

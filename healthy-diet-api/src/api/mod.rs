@@ -4,3 +4,4 @@ pub mod model;
 pub mod refresh;
 pub mod register;
 pub mod user;
+pub mod ping;
