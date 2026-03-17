@@ -21,3 +21,4 @@ validator = { version = "0.20.0", features = ["derive"] }
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 axum-extra = { version = "0.12.5", features = ["typed-header"] }
 async-trait = "0.1.89"
+rand = "0.10.0"
