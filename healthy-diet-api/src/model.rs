@@ -16,6 +16,7 @@ impl APIRouter {
     pub const REFRESH_TOKEN: &'static str = "/auth/refresh";
     pub const PROFILE: &'static str = "/user/profile";
     pub const AI_CONSULT: &'static str = "/consult";
+    pub const DIET: &'static str = "/diet";
 }
 
 pub struct ENVKey;

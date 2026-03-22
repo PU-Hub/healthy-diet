@@ -1,6 +1,7 @@
 use crate::{
     api::{
         consult::consult_handler,
+        diet::yolo_handler,
         login::login_handler,
         ping::ping_handler,
         refresh::refresh_handler,
@@ -11,8 +12,8 @@ use crate::{
     model::{APIRouter, AppState},
 };
 use axum::{
-    Router,
     routing::{get, post},
+    Router,
 };
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -31,6 +32,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(get_profile_handler).put(update_user_profile_handler),
         )
         .route(APIRouter::AI_CONSULT, post(consult_handler))
+        .route(APIRouter::DIET, post(yolo_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
