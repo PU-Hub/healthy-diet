@@ -1,4 +1,4 @@
-FROM rust:slim-bookworm as builder
+FROM rust:slim-bookworm AS builder
 RUN apt-get update && apt-get install -y pkg-config libssl-dev
 WORKDIR /app
 ENV SQLX_OFFLINE=true
