@@ -3,3 +3,4 @@ target/
 .env
 Dockerfile.dev
 docker-compose.yml
+node_modules/
