@@ -137,7 +137,7 @@ paths:
                     status: ok
                     time: "2025-12-23T10:30:00.000Z"
                     uptime: 86400
-  /api/user/profile:
+  /user/profile:
     get:
       summary: 取得個人詳細資料
       description: 取得使用者的基本資料、身體數值以及最近的 AI 諮詢紀錄。
@@ -176,8 +176,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserDetailResponse"
         "400":
-          description: 資料格式錯誤 
-  /api/consult:
+          description: 資料格式錯誤
+  /consult:
     post:
       summary: AI 營養諮詢
       description: |
@@ -206,7 +206,7 @@ paths:
         "429":
           description: 請求過於頻繁 (達到 AI API 限制)
         "500":
-          description: 伺服器內部錯誤 (資料庫錯誤或 AI 服務連線失敗)                
+          description: 伺服器內部錯誤 (資料庫錯誤或 AI 服務連線失敗)
 
 components:
   schemas:
@@ -341,7 +341,6 @@ components:
           description: 飲食禁忌或過敏源
           example: "不吃花生, 素食"
 
-    
     AiConsultationRecord:
       type: object
       required:
@@ -357,18 +356,18 @@ components:
           type: string
           description: 使用者問的問題
           example: "我想減肥該吃什麼？"
-        aiResponse: 
+        aiResponse:
           type: string
           description: AI 的回答
           example: "建議多攝取蛋白質..."
-        createdAt:  
+        createdAt:
           type: string
           format: date-time
           example: "2025-12-25T14:30:00Z"
 
     UserDetailResponse:
       allOf:
-        - $ref: "#/components/schemas/UserProfile" 
+        - $ref: "#/components/schemas/UserProfile"
         - type: object
           properties:
             height:
@@ -377,10 +376,10 @@ components:
             weight:
               type: number
               nullable: true
-            dietaryRestrictions: 
+            dietaryRestrictions:
               type: string
               nullable: true
-            aiConsultations:    
+            aiConsultations:
               type: array
               items:
                 $ref: "#/components/schemas/AiConsultationRecord"
