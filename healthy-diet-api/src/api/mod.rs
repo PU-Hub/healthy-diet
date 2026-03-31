@@ -1,5 +1,6 @@
 pub mod consult;
 pub mod diet;
+pub mod health;
 pub mod login;
 pub mod model;
 pub mod ping;

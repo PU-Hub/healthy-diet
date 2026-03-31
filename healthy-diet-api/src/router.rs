@@ -2,6 +2,7 @@ use crate::{
     api::{
         consult::consult_handler,
         diet::yolo_handler,
+        health::healthy_server_handler,
         login::login_handler,
         ping::ping_handler,
         refresh::refresh_handler,
@@ -12,8 +13,8 @@ use crate::{
     model::{APIRouter, AppState},
 };
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -22,6 +23,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", get(async || "Connect Success!"))
         .route("/ping", get(ping_handler))
+        .route(APIRouter::HEALTH, get(healthy_server_handler))
         .route(APIRouter::DISOCRD_LOGIN, get(login_discord))
         .route(APIRouter::DISOCRD_CALLBACK, get(discord_callback))
         .route(APIRouter::REGISTER, post(register_handler))
