@@ -4,13 +4,10 @@ import {
   Home, Edit2, Send, UploadCloud, CheckCircle2,
   Sparkles, Users, BookOpen, Smartphone, Trophy, Moon, Code2, Server, Database, X, Image as ImageIcon
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown'; // 👈 引入 Markdown 解析套件
+import ReactMarkdown from 'react-markdown';
 
 const API_BASE = `http://${window.location.hostname}:5000`;
 
-// ==========================================
-// 1. 登入與註冊視圖
-// ==========================================
 
 const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => {
   const [email, setEmail] = useState('ckck@gmail.com');
@@ -146,10 +143,9 @@ const DashboardView = ({ user, setCurrentView }) => {
   const [health, setHealth] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/`)
-      .then(() => setHealth({
-        status: 'ok'
-      }))
+    fetch(`${API_BASE}/health`)
+      .then(res => res.json()
+      ).then(data => setHealth(data))
       .catch(console.error);
   }, []);
 

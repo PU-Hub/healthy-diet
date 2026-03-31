@@ -207,6 +207,39 @@ paths:
           description: 請求過於頻繁 (達到 AI API 限制)
         "500":
           description: 伺服器內部錯誤 (資料庫錯誤或 AI 服務連線失敗)
+  /diet:
+    post:
+      summary: 食物圖片辨識與熱量計算
+      description: |
+        上傳飲食圖片，系統將使用 YOLO 模型辨識食物種類，並透過 Bounding Box 面積估算各項食材的重量與總熱量。
+      operationId: analyzeDietImage
+      tags: [Diet Records]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: 欲辨識的食物照片 (JPG/PNG)
+              responses:
+                "200":
+                  description: 辨識與熱量計算成功
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/CalorieResponse"
+                "400":
+                  description: 請求無效 (例如未上傳圖片或圖片格式錯誤)
+                "500":
+                  description: 伺服器內部錯誤 (例如 YOLO 辨識引擎執行失敗)
 
 components:
   schemas:
@@ -395,7 +428,6 @@ components:
           description: 使用者想問的問題
           example: "我剛跑完步，有乳糖不耐症，晚餐推薦吃什麼？"
 
-    # [新增] 諮詢回應
     ConsultResponse:
       type: object
       required:
@@ -405,6 +437,54 @@ components:
           type: string
           description: AI 營養師的回覆內容
           example: "運動後建議補充優質蛋白質。考慮到您有乳糖不耐症，建議攝取豆漿、雞胸肉或水煮蛋，避免飲用牛奶。"
+          CalorieResponse:
+            type: object
+            required:
+              - message
+              - total_calories
+              - detected_items
+            properties:
+              message:
+                type: string
+                description: API 執行狀態訊息
+                example: "辨識與熱量計算完成"
+              total_calories:
+                type: number
+                format: double
+                description: 照片中食物的總預估熱量 (大卡)
+                example: 452.5
+              detected_items:
+                type: array
+                description: 偵測到的各項食物清單
+                items:
+                  $ref: "#/components/schemas/DetectedFoodItem"
+    DetectedFoodItem:
+      type: object
+      required:
+        - class
+        - confidence
+        - estimated_weight_g
+        - calories
+      properties:
+        class:
+          type: string
+          description: 辨識出的食物類別 (如 rice, pork, leafy_veg)
+          example: "pork"
+        confidence:
+          type: number
+          format: double
+          description: AI 辨識的信心水準 (0.00 ~ 1.00)
+          example: 0.94
+        estimated_weight_g:
+          type: number
+          format: double
+          description: 根據像素面積推算的預估重量 (克)
+          example: 120.5
+        calories:
+          type: number
+          format: double
+          description: 該項食物的預估熱量 (大卡)
+          example: 301.25
 
   securitySchemes:
     bearerAuth:

@@ -1,22 +1,48 @@
 use axum::{Json, extract::State, http::StatusCode};
 use axum_extra::extract::Multipart;
+use serde::{Deserialize, Serialize};
 use std::{env, fs, process::Command, sync::Arc};
 use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
-#[derive(serde::Serialize)]
-pub struct YoloResponse {
+#[derive(Deserialize, Debug)]
+pub struct YoloScriptOutput {
+    pub status: String,
+    pub image_path: String,
+    pub json_path: String,
+    pub detections: Vec<Detection>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Detection {
+    #[serde(rename = "class")]
+    pub class_name: String,
+    pub confidence: f64,
+    pub bbox: [f64; 4], // [x_min, y_min, x_max, y_max]
+}
+
+#[derive(Serialize)]
+pub struct CalorieResponse {
     pub message: String,
-    pub detected_objects: String,
+    pub total_calories: f64,
+    pub detected_items: Vec<FoodItem>,
+}
+
+#[derive(Serialize)]
+pub struct FoodItem {
+    pub class: String,
+    pub confidence: f64,
+    pub estimated_weight_g: f64,
+    pub calories: f64,
 }
 
 pub async fn yolo_handler(
     _auth_user: AuthUser,
     State(_state): State<Arc<AppState>>,
     mut multipart: Multipart,
-) -> Result<Json<YoloResponse>, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<CalorieResponse>, (StatusCode, Json<ErrorResponse>)> {
     let mut image_data = None;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
@@ -97,8 +123,65 @@ pub async fn yolo_handler(
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
 
-    Ok(Json(YoloResponse {
-        message: "辨識完成".into(),
-        detected_objects: stdout,
+    let yolo_result: YoloScriptOutput = match serde_json::from_str(&stdout) {
+        Ok(result) => result,
+        Err(e) => {
+            error!("解析 YOLO 輸出失敗: {}, 輸出內容: {}", e, stdout);
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "無法解析辨識結果".into(),
+                }),
+            ));
+        }
+    };
+
+    // 3. 熱量計算參數設定
+    // ⚠️ 警告：這是一個預估值，假設 10 像素 = 1 公分。
+    // 在真實應用中，你可能需要根據使用者上傳的圖片尺寸做正規化，或請使用者放硬幣當作比例尺。
+    let pixel_to_cm = 0.1;
+    let average_height_cm = 2.0;
+
+    let mut total_calories = 0.0;
+    let mut detected_items = Vec::new();
+
+    // 4. 計算每個物件的熱量
+    for det in yolo_result.detections {
+        let x_min = det.bbox[0];
+        let y_min = det.bbox[1];
+        let x_max = det.bbox[2];
+        let y_max = det.bbox[3];
+
+        let width_cm = (x_max - x_min) * pixel_to_cm;
+        let height_cm = (y_max - y_min) * pixel_to_cm;
+
+        let volume_cm3 = width_cm * height_cm * average_height_cm;
+        let weight_g = volume_cm3 * 1.0; // 假設密度為 1 g/cm3
+
+        let cal_per_gram = match det.class_name.as_str() {
+            "rice" => 1.3,
+            "pork" => 2.5,
+            "chicken" => 1.65,
+            "leafy_veg" => 0.25,
+            "mushroom" => 0.22,
+            "apple" => 0.52,
+            _ => 1.0,
+        };
+
+        let item_calories = weight_g * cal_per_gram;
+        total_calories += item_calories;
+
+        detected_items.push(FoodItem {
+            class: det.class_name,
+            confidence: (det.confidence * 100.0).round() / 100.0,
+            estimated_weight_g: (weight_g * 10.0).round() / 10.0,
+            calories: (item_calories * 10.0).round() / 10.0,
+        });
+    }
+
+    Ok(Json(CalorieResponse {
+        message: "辨識與熱量計算完成".into(),
+        total_calories: (total_calories * 10.0).round() / 10.0,
+        detected_items,
     }))
 }
