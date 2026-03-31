@@ -48,9 +48,9 @@ pub async fn yolo_handler(
     ))?;
 
     let file_id = Uuid::new_v4().to_string();
-    let input_path = format!("./uploads/{}.jpg", file_id);
+    let input_path = format!("/app/uploads/{}.jpg", file_id);
 
-    fs::create_dir_all("./uploads").ok();
+    fs::create_dir_all("/app/uploads").ok();
     fs::write(&input_path, data).map_err(|e| {
         error!("檔案寫入失敗: {:?}", e);
         (
@@ -62,7 +62,7 @@ pub async fn yolo_handler(
     })?;
 
     let yolo_script = env::var("YOLO_SCRIPT_PATH")
-        .unwrap_or_else(|_| "../health-diet-yolo/predict.py".to_string());
+        .unwrap_or_else(|_| "../healthy-diet-yolo/predict.py".to_string());
 
     info!(
         "正在執行 YOLO 辨識，腳本路徑: {}, 圖片: {}",
@@ -71,10 +71,8 @@ pub async fn yolo_handler(
 
     let output = Command::new("python3")
         .arg(yolo_script)
-        .arg("predict")
-        .arg("model=yolo11n.pt")
-        .arg(format!("source={}", input_path))
-        .arg("save=true")
+        .arg("--input")
+        .arg(format!("{}", input_path))
         .output()
         .map_err(|e| {
             error!("YOLO CLI 執行錯誤: {:?}", e);

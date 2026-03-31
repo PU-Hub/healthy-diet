@@ -1,40 +1,68 @@
-# --- 第一階段：Rust 編譯 ---
-FROM rust:slim-bookworm AS builder
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-ENV SQLX_OFFLINE=true
-COPY . .
-RUN cargo build --release
+# syntax=docker/dockerfile:1
+ARG RUST_VERSION=1.92.0
+ARG APP_NAME=healthy-diet-api-server
 
-# --- 第二階段：最終運行環境 ---
-FROM debian:bookworm-slim
-
+# ── Build stage ──────────────────────────────────────────────
+FROM rust:${RUST_VERSION}-slim-bookworm AS build
+ARG APP_NAME
 WORKDIR /app
 
-# 合併安裝與清理，減少鏡像層
 RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl3 \
-    python3 \
-    python3-pip \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    && apt-get clean \
+    clang lld musl-dev git \
+    pkg-config libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 優化重點：安裝 CPU 版 PyTorch 並移除 pip 緩存
-RUN pip3 install --no-cache-dir ultralytics \
-    --extra-index-url https://download.pytorch.org/whl/cpu \
-    --break-system-packages \
-    && rm -rf /root/.cache/pip
+ENV SQLX_OFFLINE=true
 
-# 複製編譯好的 Rust 執行檔
-COPY --from=builder /app/target/release/healthy-diet-api-server /app/server
+RUN --mount=type=bind,source=healthy-diet-api/src,target=src \
+    --mount=type=bind,source=healthy-diet-api/Cargo.toml,target=Cargo.toml \
+    --mount=type=bind,source=healthy-diet-api/Cargo.lock,target=Cargo.lock \
+    --mount=type=bind,source=healthy-diet-api/.sqlx,target=.sqlx \
+    --mount=type=cache,target=/app/target/ \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    cargo build --locked --release && \
+    cp ./target/release/$APP_NAME /bin/server
 
-# 預下載模型（這部分無法省，但可以確保模型封裝在鏡像中）
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
+# ── Final stage ───────────────────────────────────────────────
+FROM nvidia/cuda:13.1.1-cudnn-runtime-ubuntu24.04 AS final
+ARG UID=10001
+WORKDIR /app
 
+#RUN adduser \
+#    --disabled-password \
+#    --gecos "" \
+#    --home "/nonexistent" \
+#    --shell "/sbin/nologin" \
+#    --no-create-home \
+#    --uid "${UID}" \
+#    appuser
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    python3 \
+    python3-pip \
+    libgl1 \
+    libglx-mesa0 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN update-ca-certificates
+
+RUN pip3 install --no-cache-dir --break-system-packages \
+    torch \
+    torchvision \
+    ultralytics==8.3.193 \
+    opencv-python-headless==4.12.0.88 \
+    numpy==2.2.6
+
+    
+#USER appuser
+COPY --from=build /bin/server /bin/
+#COPY healthy-diet-yolo/ /app/yolo_scripts/
+RUN mkdir -p /root/.config/Ultralytics && chmod -R 700 /root/.config/Ultralytics
+RUN mkdir -p /app/yolo_scripts
 RUN mkdir -p /app/uploads
 
 EXPOSE 3000
-CMD ["./server"]
+CMD ["bash", "-c", "sleep 2 && /bin/server"]

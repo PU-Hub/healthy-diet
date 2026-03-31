@@ -21,7 +21,7 @@ async fn main() {
     let database_url = env::var(ENVKey::DATABASE_URL).expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(10)
-        .acquire_timeout(Duration::from_secs(3))
+        .acquire_timeout(Duration::from_secs(30))
         .idle_timeout(Duration::from_secs(60))
         .max_lifetime(Duration::from_secs(1800))
         .connect(&database_url)

@@ -10,6 +10,8 @@ info:
 servers:
   - url: http://localhost:3000/api
     description: 本地開發伺服器
+  - url: http://120.110.113.111:3000
+    description: 外地連接(國外除外)
   # TODO: 添加生產伺服器連結 URL
 
 tags:

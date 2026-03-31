@@ -1,0 +1,67 @@
+{
+    "status": "success",
+    "image_path": "/app/yolo_scripts/results/images/20260331_064614_6219329f.jpg",
+    "json_path": "/app/yolo_scripts/results/json/20260331_064614_6219329f.json",
+    "detections": [
+        {
+            "class": "leafy_veg",
+            "confidence": 0.952,
+            "bbox": [
+                424,
+                42,
+                749,
+                310
+            ]
+        },
+        {
+            "class": "leafy_veg",
+            "confidence": 0.946,
+            "bbox": [
+                813,
+                345,
+                1197,
+                797
+            ]
+        },
+        {
+            "class": "rice",
+            "confidence": 0.932,
+            "bbox": [
+                2,
+                360,
+                888,
+                861
+            ]
+        },
+        {
+            "class": "leafy_veg",
+            "confidence": 0.912,
+            "bbox": [
+                750,
+                62,
+                1057,
+                312
+            ]
+        },
+        {
+            "class": "mushroom",
+            "confidence": 0.797,
+            "bbox": [
+                109,
+                71,
+                416,
+                327
+            ]
+        },
+        {
+            "class": "chicken",
+            "confidence": 0.697,
+            "bbox": [
+                93,
+                377,
+                795,
+                856
+            ]
+        }
+    ]
+}
