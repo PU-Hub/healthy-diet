@@ -18,8 +18,8 @@ const API_BASE = 'http://localhost:5000';
 // ==========================================
 
 const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => {
-  const [email, setEmail] = useState('example@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('ckck@gmail.com');
+  const [password, setPassword] = useState('a123456');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
@@ -741,7 +741,7 @@ const DietView = ({ apiFetch, showNotification }) => {
             {/* 新增：顯示總熱量 */}
             {result.total_calories !== undefined && (
               <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-xl font-bold text-lg flex items-center shadow-sm w-full sm:w-auto justify-center">
-                 總熱量: <span className="text-2xl ml-2 mr-1">{result.total_calories}</span> kcal
+                總熱量: <span className="text-2xl ml-2 mr-1">{result.total_calories}</span> ±50 kcal
               </div>
             )}
           </div>
@@ -768,7 +768,7 @@ const DietView = ({ apiFetch, showNotification }) => {
                   <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
                   <div className="text-sm font-bold text-orange-600">
                     <span className="text-orange-300 text-xs block sm:inline sm:mr-1">熱量</span>
-                    {det.calories} kcal
+                    {det.calories}±20 kcal
                   </div>
                 </div>
               </div>
@@ -1021,7 +1021,7 @@ export default function App() {
                 <Activity size={24} />
               </div>
               <span className="font-extrabold text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">
-                健康管家
+                健康飲食APP 網頁版
               </span>
             </div>
 
