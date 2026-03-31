@@ -1,0 +1,17 @@
+{
+  "people1": {
+    "gender": "male" | "female",
+    "height": "160",
+    "weight": "60",
+    "age": "59",
+    "error": ["牛奶"],//string[]
+    "disease": ["代謝症候群", "肌少症"]//string[]
+  },
+  "people2": {
+    "gender": "female",
+    "height": "152",
+    "weight": "50",
+    "age": "75",
+    "disease": ["高血壓", "糖尿病", "心臟病"]
+  }
+}
