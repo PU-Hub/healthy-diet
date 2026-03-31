@@ -136,10 +136,7 @@ pub async fn yolo_handler(
         }
     };
 
-    // 3. 熱量計算參數設定
-    // ⚠️ 警告：這是一個預估值，假設 10 像素 = 1 公分。
-    // 在真實應用中，你可能需要根據使用者上傳的圖片尺寸做正規化，或請使用者放硬幣當作比例尺。
-    let pixel_to_cm = 0.1;
+    let pixel_to_cm = 0.01;
     let average_height_cm = 2.0;
 
     let mut total_calories = 0.0;
@@ -152,11 +149,24 @@ pub async fn yolo_handler(
         let x_max = det.bbox[2];
         let y_max = det.bbox[3];
 
-        let width_cm = (x_max - x_min) * pixel_to_cm;
-        let height_cm = (y_max - y_min) * pixel_to_cm;
+        let width_pixels = x_max - x_min;
+        let height_pixels = y_max - y_min;
+
+        let width_cm = width_pixels * pixel_to_cm;
+        let height_cm = height_pixels * pixel_to_cm;
 
         let volume_cm3 = width_cm * height_cm * average_height_cm;
-        let weight_g = volume_cm3 * 1.0; // 假設密度為 1 g/cm3
+        let raw_weight_g = volume_cm3 * 1.0;
+
+        let weight_g = match det.class_name.as_str() {
+            "rice" => raw_weight_g.clamp(50.0, 300.0),
+            "pork" => raw_weight_g.clamp(30.0, 250.0),
+            "chicken" => raw_weight_g.clamp(30.0, 250.0),
+            "leafy_veg" => raw_weight_g.clamp(10.0, 150.0),
+            "mushroom" => raw_weight_g.clamp(10.0, 100.0),
+            "apple" => raw_weight_g.clamp(50.0, 250.0),
+            _ => raw_weight_g.clamp(10.0, 200.0),
+        };
 
         let cal_per_gram = match det.class_name.as_str() {
             "rice" => 1.3,
@@ -178,10 +188,9 @@ pub async fn yolo_handler(
             calories: (item_calories * 10.0).round() / 10.0,
         });
     }
-
     Ok(Json(CalorieResponse {
         message: "辨識與熱量計算完成".into(),
-        total_calories: (total_calories * 10.0).round() / 10.0,
+        total_calories: (total_calories * 10.0_f64).round() / 10.0,
         detected_items,
     }))
 }

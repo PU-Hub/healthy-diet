@@ -4,14 +4,22 @@ import {
   Home, Edit2, Send, UploadCloud, CheckCircle2,
   Sparkles, Users, BookOpen, Smartphone, Trophy, Moon, Code2, Server, Database, X, Image as ImageIcon
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from 'react-markdown'; // 👈 引入 Markdown 解析套件
 
-const API_BASE = `http://${window.location.hostname}:5000`;
+// ==========================================
+// 系統設定 - 指向您的 Flask 中繼伺服器 (Proxy)
+// ⚠️ 【手機連線必看】如果要讓手機連線，請把 localhost 改成您電腦的「區域網路 IP」
+// 例如：const API_BASE = 'http://192.168.1.100:5000';
+// ==========================================
+const API_BASE = 'http://localhost:5000';
 
+// ==========================================
+// 1. 登入與註冊視圖
+// ==========================================
 
 const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => {
-  const [email, setEmail] = useState('ckck@gmail.com');
-  const [password, setPassword] = useState('a123456');
+  const [email, setEmail] = useState('example@example.com');
+  const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
@@ -144,8 +152,9 @@ const DashboardView = ({ user, setCurrentView }) => {
 
   useEffect(() => {
     fetch(`${API_BASE}/health`)
-      .then(res => res.json()
-      ).then(data => setHealth(data))
+      .then(() => setHealth({
+        status: 'ok'
+      }))
       .catch(console.error);
   }, []);
 
@@ -161,7 +170,7 @@ const DashboardView = ({ user, setCurrentView }) => {
     { title: '進階睡眠分析', icon: <Moon size={24} />, desc: '結合您的飲食習慣，由 AI 分析並改善您的睡眠品質。' },
   ];
 
-  // 🔽 新增：動態計算 BMI 與分類狀態
+  // 動態計算 BMI 與分類狀態
   let bmi = null;
   let bmiStatus = '';
   let bmiColor = 'text-gray-500 bg-gray-100';
@@ -225,7 +234,6 @@ const DashboardView = ({ user, setCurrentView }) => {
       {/* 狀態卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
 
-        {/* 🔽 變更：改為 items-start 讓圖示對齊頂部，並加入 BMI 與懸浮顯示 */}
         <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-4 sm:space-x-5">
           <div className="bg-orange-100 p-3 sm:p-4 rounded-full text-orange-600 mt-1"><User size={24} className="sm:w-7 sm:h-7" /></div>
           <div className="flex-1">
@@ -234,7 +242,7 @@ const DashboardView = ({ user, setCurrentView }) => {
               {user?.height ? `${user.height} cm` : '--'} / {user?.weight ? `${user.weight} kg` : '--'}
             </p>
 
-            {/* 新增：BMI 區塊與 Tooltip 懸浮提示 */}
+            {/* BMI 區塊與 Tooltip 懸浮提示 */}
             {bmi && (
               <div className="mt-2 relative group inline-block">
                 <div className={`text-xs px-2.5 py-1.5 rounded-lg font-bold cursor-help inline-flex items-center transition-transform hover:scale-105 ${bmiColor}`}>
@@ -387,8 +395,10 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
   const [isThinking, setIsThinking] = useState(false);
   const endOfChatRef = useRef(null);
 
+  // 接收後端陣列 (支援 JS 的 camelCase 或是 Rust 的 snake_case)
   const historyData = user?.aiConsultations || user?.ai_consultations;
 
+  // 1. 同步與自動排序歷史紀錄
   useEffect(() => {
     if (historyData) {
       const sortedHistory = [...historyData].sort((a, b) => {
@@ -533,24 +543,24 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
   );
 };
 
+// 🔽 這是被更新的 DietView (飲食辨識視圖)
 const DietView = ({ apiFetch, showNotification }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // 相機相關 State 與 Ref
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  // 清理相機資源 (當元件卸載或關閉相機時)
   useEffect(() => {
     return () => stopCamera();
   }, []);
 
   const startCamera = async () => {
     try {
-      // 優先開啟後置鏡頭
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' }
       });
@@ -614,13 +624,14 @@ const DietView = ({ apiFetch, showNotification }) => {
     formData.append('image', selectedFile);
 
     try {
+      // 呼叫更新後的 /diet API
       const data = await apiFetch('/diet', {
         method: 'POST',
         body: formData
       });
 
-      const parsed = JSON.parse(data.detected_objects);
-      setResult({ message: data.message, detections: parsed.detections });
+      // 🔽 直接將回傳的 JSON (CalorieResponse) 存入 Result
+      setResult(data);
       showNotification('AI 視覺分析完成！');
     } catch (err) {
       showNotification(err.message, 'error');
@@ -642,6 +653,7 @@ const DietView = ({ apiFetch, showNotification }) => {
           </div>
         </div>
 
+        {/* 主要上傳 / 相機區塊 */}
         <div className="mb-6">
           {isCameraOpen ? (
             <div className="relative bg-black rounded-3xl overflow-hidden shadow-inner aspect-video flex flex-col items-center justify-center">
@@ -705,6 +717,7 @@ const DietView = ({ apiFetch, showNotification }) => {
           )}
         </div>
 
+        {/* 送出分析按鈕 */}
         <div className="flex justify-center mt-6">
           <button onClick={handleUpload} disabled={!selectedFile || isAnalyzing || isCameraOpen}
             className="w-full sm:w-auto bg-blue-600 text-white px-8 sm:px-12 py-3 sm:py-4 rounded-2xl hover:bg-blue-700 transition-all font-bold text-base sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg hover:shadow-xl">
@@ -717,27 +730,46 @@ const DietView = ({ apiFetch, showNotification }) => {
         </div>
       </div>
 
+      {/* 🔽 辨識結果 (配合新的 JSON 結構) */}
       {result && (
         <div className="bg-blue-50 p-6 sm:p-8 rounded-3xl border border-blue-100 animate-in slide-in-from-bottom-4 shadow-sm">
-          <h3 className="text-lg sm:text-xl font-bold text-blue-900 mb-4 sm:mb-6 flex items-center">
-            <CheckCircle2 className="mr-2 text-blue-600" size={24} /> 辨識報告 ({result.message})
-          </h3>
+
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
+            <h3 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center">
+              <CheckCircle2 className="mr-2 text-blue-600" size={24} /> {result.message}
+            </h3>
+            {/* 新增：顯示總熱量 */}
+            {result.total_calories !== undefined && (
+              <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-xl font-bold text-lg flex items-center shadow-sm w-full sm:w-auto justify-center">
+                 總熱量: <span className="text-2xl ml-2 mr-1">{result.total_calories}</span> kcal
+              </div>
+            )}
+          </div>
+
           <div className="space-y-3 sm:space-y-4">
-            {result.detections.length > 0 ? result.detections.map((det, idx) => (
-              <div key={idx} className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-blue-100 flex justify-between items-center transform hover:scale-[1.01] transition-transform">
+            {result.detected_items && result.detected_items.length > 0 ? result.detected_items.map((det, idx) => (
+              <div key={idx} className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-blue-100 flex flex-col sm:flex-row sm:justify-between sm:items-center transform hover:scale-[1.01] transition-transform gap-3 sm:gap-0">
                 <div className="flex items-center">
                   <div className="bg-blue-100 p-2 rounded-lg mr-3 sm:mr-4 text-blue-700">
                     <Database size={18} className="sm:w-5 sm:h-5" />
                   </div>
-                  <span className="font-bold text-gray-800 capitalize text-base sm:text-lg">{det.class}</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-24 sm:w-32 bg-gray-200 rounded-full h-2 sm:h-2.5 mr-2 sm:mr-3 hidden xs:block">
-                    <div className="bg-blue-500 h-2 sm:h-2.5 rounded-full" style={{ width: `${det.confidence * 100}%` }}></div>
+                  <div>
+                    <span className="font-bold text-gray-800 capitalize text-base sm:text-lg block">{det.class}</span>
+                    <span className="text-xs text-gray-500">信心度 {(det.confidence * 100).toFixed(0)}%</span>
                   </div>
-                  <span className="text-xs sm:text-sm bg-blue-100 text-blue-800 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-bold">
-                    信心度 {(det.confidence * 100).toFixed(1)}%
-                  </span>
+                </div>
+
+                {/* 新增：顯示預估重量與熱量 */}
+                <div className="flex items-center space-x-3 sm:space-x-4 bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-xl">
+                  <div className="text-sm font-medium text-gray-600">
+                    <span className="text-gray-400 text-xs block sm:inline sm:mr-1">預估重量</span>
+                    {det.estimated_weight_g} g
+                  </div>
+                  <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+                  <div className="text-sm font-bold text-orange-600">
+                    <span className="text-orange-300 text-xs block sm:inline sm:mr-1">熱量</span>
+                    {det.calories} kcal
+                  </div>
                 </div>
               </div>
             )) : (
@@ -753,6 +785,9 @@ const DietView = ({ apiFetch, showNotification }) => {
   );
 };
 
+// ==========================================
+// 4. 新增：關於團隊視圖
+// ==========================================
 
 const AboutView = () => {
   const team = [
@@ -800,6 +835,9 @@ const AboutView = () => {
   );
 };
 
+// ==========================================
+// 5. 新增：API 文件視圖
+// ==========================================
 
 const ApiDocsView = () => {
   const endpoints = [
@@ -866,6 +904,10 @@ const ApiDocsView = () => {
 };
 
 
+// ==========================================
+// 主應用程式元件 (App)
+// ==========================================
+
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [user, setUser] = useState(null);
@@ -921,6 +963,7 @@ export default function App() {
     }
   };
 
+  // 登入或註冊畫面
   if (currentView === 'login' || currentView === 'register') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-50 via-gray-50 to-blue-50 relative p-4 overflow-hidden">
@@ -968,6 +1011,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      {/* 頂部導覽列 (電腦版/平板版) */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hidden sm:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between h-16 sm:h-20">
@@ -977,7 +1021,7 @@ export default function App() {
                 <Activity size={24} />
               </div>
               <span className="font-extrabold text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">
-                健康飲食APP (網頁板)
+                健康管家
               </span>
             </div>
 

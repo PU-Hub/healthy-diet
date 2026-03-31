@@ -32,7 +32,6 @@ paths:
       summary: 使用者登入
       description: |
         驗證使用者身分並返回用於後續 API 請求的存取 Token 及使用者資訊。
-
         客戶端應提交有效的電子郵件及密碼憑證。成功驗證後，回應將包含 JWT Token 及使用者基本資料。
       operationId: login
       tags: [Authentication]
@@ -57,8 +56,8 @@ paths:
                 success:
                   summary: 成功登入
                   value:
-                    token: eyJhbGciOiJIUzI1Ni..."
-                    refreshToken: eyJhbGciOiJIUzI1Ni..."
+                    token: "eyJhbGciOiJIUzI1Ni..."
+                    refreshToken: "eyJhbGciOiJIUzI1Ni..."
                     expiresIn: 3600
                     user:
                       id: "550e8400-e29b-41d4-a716-446655440000"
@@ -107,7 +106,7 @@ paths:
             examples:
               example:
                 value:
-                  refreshToken: eyJhbGciOiJIUzI1Ni..."
+                  refreshToken: "eyJhbGciOiJIUzI1Ni..."
       responses:
         "200":
           description: Token 更新成功。
@@ -137,6 +136,7 @@ paths:
                     status: ok
                     time: "2025-12-23T10:30:00.000Z"
                     uptime: 86400
+
   /user/profile:
     get:
       summary: 取得個人詳細資料
@@ -154,7 +154,6 @@ paths:
                 $ref: "#/components/schemas/UserDetailResponse"
         "401":
           description: 未授權 (Token 無效或過期)
-
     put:
       summary: 更新個人資料
       description: 更新使用者的暱稱、身高、體重或飲食禁忌。支援部分更新 (Partial Update)。
@@ -177,6 +176,7 @@ paths:
                 $ref: "#/components/schemas/UserDetailResponse"
         "400":
           description: 資料格式錯誤
+
   /consult:
     post:
       summary: AI 營養諮詢
@@ -185,7 +185,7 @@ paths:
         系統會自動讀取該使用者的個人檔案 (身高、體重、飲食禁忌) 並附加在提示詞中，以獲得個人化的建議。
         對話紀錄會自動儲存至資料庫。
       operationId: consultAI
-      tags: [Consultation]
+      tags: [Nutrition]
       security:
         - bearerAuth: []
       requestBody:
@@ -207,6 +207,7 @@ paths:
           description: 請求過於頻繁 (達到 AI API 限制)
         "500":
           description: 伺服器內部錯誤 (資料庫錯誤或 AI 服務連線失敗)
+
   /diet:
     post:
       summary: 食物圖片辨識與熱量計算
@@ -229,17 +230,17 @@ paths:
                   type: string
                   format: binary
                   description: 欲辨識的食物照片 (JPG/PNG)
-              responses:
-                "200":
-                  description: 辨識與熱量計算成功
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/CalorieResponse"
-                "400":
-                  description: 請求無效 (例如未上傳圖片或圖片格式錯誤)
-                "500":
-                  description: 伺服器內部錯誤 (例如 YOLO 辨識引擎執行失敗)
+      responses:
+        "200":
+          description: 辨識與熱量計算成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalorieResponse"
+        "400":
+          description: 請求無效 (例如未上傳圖片或圖片格式錯誤)
+        "500":
+          description: 伺服器內部錯誤 (例如 YOLO 辨識引擎執行失敗)
 
 components:
   schemas:
@@ -312,7 +313,7 @@ components:
       properties:
         refreshToken:
           type: string
-          example: eyJhbGciOiJIUzI1Ni..."
+          example: "eyJhbGciOiJIUzI1Ni..."
 
     AuthResponse:
       type: object
@@ -349,6 +350,7 @@ components:
           format: date-time
         uptime:
           type: number
+
     UpdateProfilePayload:
       type: object
       properties:
@@ -416,6 +418,7 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/AiConsultationRecord"
+
     ConsultRequest:
       type: object
       required:
@@ -437,27 +440,29 @@ components:
           type: string
           description: AI 營養師的回覆內容
           example: "運動後建議補充優質蛋白質。考慮到您有乳糖不耐症，建議攝取豆漿、雞胸肉或水煮蛋，避免飲用牛奶。"
-          CalorieResponse:
-            type: object
-            required:
-              - message
-              - total_calories
-              - detected_items
-            properties:
-              message:
-                type: string
-                description: API 執行狀態訊息
-                example: "辨識與熱量計算完成"
-              total_calories:
-                type: number
-                format: double
-                description: 照片中食物的總預估熱量 (大卡)
-                example: 452.5
-              detected_items:
-                type: array
-                description: 偵測到的各項食物清單
-                items:
-                  $ref: "#/components/schemas/DetectedFoodItem"
+
+    CalorieResponse:
+      type: object
+      required:
+        - message
+        - total_calories
+        - detected_items
+      properties:
+        message:
+          type: string
+          description: API 執行狀態訊息
+          example: "辨識與熱量計算完成"
+        total_calories:
+          type: number
+          format: double
+          description: 照片中食物的總預估熱量 (大卡)
+          example: 452.5
+        detected_items:
+          type: array
+          description: 偵測到的各項食物清單
+          items:
+            $ref: "#/components/schemas/DetectedFoodItem"
+
     DetectedFoodItem:
       type: object
       required:
