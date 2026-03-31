@@ -136,8 +136,8 @@ pub async fn yolo_handler(
         }
     };
 
-    let pixel_to_cm = 0.01;
-    let average_height_cm = 2.0;
+    let pixel_to_cm = 0.05;
+    let average_height_cm = 3.0;
 
     let mut total_calories = 0.0;
     let mut detected_items = Vec::new();
