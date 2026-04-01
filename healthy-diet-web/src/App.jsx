@@ -4,18 +4,12 @@ import {
   Home, Edit2, Send, UploadCloud, CheckCircle2,
   Sparkles, Users, BookOpen, Smartphone, Trophy, Moon, Code2, Server, Database, X, Image as ImageIcon
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown'; // 👈 引入 Markdown 解析套件
+import ReactMarkdown from 'react-markdown';
 
-// ==========================================
-// 系統設定 - 指向您的 Flask 中繼伺服器 (Proxy)
-// ⚠️ 【手機連線必看】如果要讓手機連線，請把 localhost 改成您電腦的「區域網路 IP」
-// 例如：const API_BASE = 'http://192.168.1.100:5000';
-// ==========================================
-const API_BASE = 'http://localhost:5000';
 
-// ==========================================
-// 1. 登入與註冊視圖
-// ==========================================
+const API_BASE = '/api';
+
+
 
 const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => {
   const [email, setEmail] = useState('ckck@gmail.com');
@@ -43,7 +37,7 @@ const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all hover:scale-[1.01] mx-4">
       <div className="flex justify-center mb-6">
-        <div className="bg-gradient-to-br from-green-400 to-emerald-600 p-4 rounded-2xl text-white shadow-lg">
+        <div className="`bg-linear-to-br from-green-400 to-emerald-600 p-4 rounded-2xl text-white shadow-lg">
           <Activity size={36} />
         </div>
       </div>
@@ -64,7 +58,7 @@ const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => 
             placeholder="請輸入密碼" />
         </div>
         <button type="submit" disabled={isLoading}
-          className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all font-bold shadow-md disabled:opacity-70 mt-2">
+          className="w-full bg-linear-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all font-bold shadow-md disabled:opacity-70 mt-2">
           {isLoading ? '驗證中...' : '立即登入'}
         </button>
         <div className="text-center mt-6 pt-4 border-t border-gray-100">
@@ -105,7 +99,7 @@ const RegisterView = ({ apiFetch, setToken, setCurrentView, showNotification }) 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all hover:scale-[1.01] mx-4">
       <div className="flex justify-center mb-6">
-        <div className="bg-gradient-to-br from-blue-400 to-indigo-600 p-4 rounded-2xl text-white shadow-lg">
+        <div className="bg-linear-to-br from-blue-400 to-indigo-600 p-4 rounded-2xl text-white shadow-lg">
           <User size={36} />
         </div>
       </div>
@@ -129,7 +123,7 @@ const RegisterView = ({ apiFetch, setToken, setCurrentView, showNotification }) 
             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all bg-gray-50 focus:bg-white text-sm sm:text-base" />
         </div>
         <button type="submit" disabled={isLoading}
-          className="w-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white py-3 rounded-xl hover:from-indigo-600 hover:to-blue-700 transition-all font-bold shadow-md disabled:opacity-70 mt-4">
+          className="w-full bg-linear-to-r from-indigo-500 to-blue-600 text-white py-3 rounded-xl hover:from-indigo-600 hover:to-blue-700 transition-all font-bold shadow-md disabled:opacity-70 mt-4">
           {isLoading ? '建立中...' : '完成註冊'}
         </button>
         <div className="text-center mt-6 pt-4 border-t border-gray-100">
@@ -197,7 +191,7 @@ const DashboardView = ({ user, setCurrentView }) => {
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       {/* 歡迎橫幅 */}
-      <div className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <h1 className="text-2xl sm:text-4xl font-extrabold mb-2 sm:mb-3">
             您好，{user?.nickname || '健康實踐者'}！ 👋
@@ -287,7 +281,7 @@ const DashboardView = ({ user, setCurrentView }) => {
       {/* 開發藍圖 (即將推出) */}
       <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white mt-8 sm:mt-10 shadow-xl overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 sm:p-8 opacity-10">
-          <Code2 size={150} className="sm:w-[200px] sm:h-[200px]" />
+          <Code2 size={150} className="sm:w-50 sm:h-50" />
         </div>
         <div className="relative z-10">
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center text-emerald-400">
@@ -446,8 +440,8 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white sm:rounded-3xl shadow-sm border-x sm:border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-120px)] sm:h-[calc(100vh-140px)] relative -mx-4 sm:mx-0">
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 sm:p-5 text-white flex items-center shadow-md relative z-10">
+    <div className="max-w-4xl -mx- bg-white sm:rounded-3xl shadow-sm border-x sm:border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-120px)] sm:h-[calc(100vh-140px)] relative -mx-4 sm:mx-0">
+      <div className="bg-linear-to-r from-emerald-600 to-teal-600 p-4 sm:p-5 text-white flex items-center shadow-md relative z-10">
         <MessageSquare className="mr-3" size={24} />
         <div>
           <h2 className="text-lg sm:text-xl font-bold">專屬 AI 營養師</h2>
@@ -481,14 +475,14 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
                 </div>
                 {aiText && (
                   <div className="flex justify-start items-end space-x-2">
-                    <div className="bg-gradient-to-br from-teal-500 to-emerald-500 p-1.5 sm:p-2 rounded-full text-white shadow-sm flex-shrink-0 mb-1">
+                    <div className="bg-linear-to-br from-teal-500 to-emerald-500 p-1.5 sm:p-2 rounded-full text-white shadow-sm flex-shrink-0 mb-1">
                       <Activity size={14} className="sm:w-4 sm:h-4" />
                     </div>
                     <div className="bg-white border border-gray-100 text-gray-700 px-4 py-3 sm:px-5 sm:py-4 rounded-2xl rounded-tl-sm max-w-[85%] sm:max-w-[80%] shadow-sm leading-relaxed text-sm sm:text-base overflow-x-auto">
                       <ReactMarkdown
                         components={{
-                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
-                          ul: ({ node, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1" {...props} />,
+                          p: ({ _, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                          ul: ({ _, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1" {...props} />,
                           ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-3 space-y-1" {...props} />,
                           li: ({ node, ...props }) => <li className="" {...props} />,
                           h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-3 mt-4 text-emerald-800 border-b pb-1" {...props} />,
@@ -515,7 +509,7 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
         )}
         {isThinking && (
           <div className="flex justify-start items-end space-x-2">
-            <div className="bg-gradient-to-br from-teal-500 to-emerald-500 p-1.5 sm:p-2 rounded-full text-white shadow-sm flex-shrink-0 mb-1">
+            <div className="bg-linear-to-b from-teal-500 to-emerald-500 p-1.5 sm:p-2 rounded-full text-white shadow-sm flex-shrink-0 mb-1">
               <Activity size={14} className="sm:w-4 sm:h-4" />
             </div>
             <div className="bg-white border border-gray-100 p-3 sm:p-4 rounded-2xl rounded-tl-sm shadow-sm flex items-center space-x-1.5 sm:space-x-2">

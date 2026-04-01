@@ -77,6 +77,4 @@ def proxy(path):
 
 if __name__ == "__main__":
     # 啟動 Flask 伺服器在 5000 port
-    print(f"🚀 Flask Proxy 伺服器啟動中...")
-    print(f"📡 目標 API 伺服器: {TARGET_API_SERVER}")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(port=5000, debug=True)
