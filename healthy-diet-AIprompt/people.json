@@ -1,17 +1,18 @@
 {
   "people1": {
-    "gender": "male" | "female",
-    "height": "160",
-    "weight": "60",
-    "age": "59",
-    "error": ["牛奶"],//string[]
-    "disease": ["代謝症候群", "肌少症"]//string[]
+    "gender": "male",
+    "height": 160.0,
+    "weight": 60.0,
+    "age": 59,
+    "taboo": ["豬肉，澱粉"],
+    "disease": ["代謝症候群", "肌少症"]
   },
   "people2": {
     "gender": "female",
-    "height": "152",
-    "weight": "50",
-    "age": "75",
+    "height": 152.4,
+    "weight": 50.8,
+    "age": 75,
+    "taboo": ["牛肉"],
     "disease": ["高血壓", "糖尿病", "心臟病"]
   }
 }

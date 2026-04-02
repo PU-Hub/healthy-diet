@@ -12,6 +12,7 @@ struct Person {
   height: f64,
   weight: f64,
   age: f64,
+  taboo: Vec<String>,
   disease: Vec<String>,
 }
 
@@ -24,21 +25,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config_str = fs::read_to_string("AIPrompt.json").expect("❌ 找不到 AIPrompt.json");
     let config: Value = serde_json::from_str(&config_str).expect("❌ JSON 格式錯誤");
 
-    // 2. 組合 System Instruction (指令)
-    let full_system_prompt = format!(
-        "身份：{}\n風格：{}\n禁忌：{}",
-        config["identity"].as_str().unwrap_or(""),
-        config["speaking_styles"].as_array()
-            .map(|a| a.iter().map(|v| v.as_str().unwrap_or("")).collect::<Vec<_>>().join(" "))
-            .unwrap_or_default(),
-        config["forbidden_words"].as_array()
-            .map(|a| a.iter().map(|v| v.as_str().unwrap_or("")).collect::<Vec<_>>().join(", "))
-            .unwrap_or_default()
-    );
+
+    // 2. 組裝 XML格式的system Instruction
+    let system_prompt = build_xml_system_prompt(&config);
+
 
     // 3. 初始化 API 與 對話紀錄
     let client = Client::new();
-    let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
+    let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
     let api_url = format!("{}?key={}", url, api_key);
 
     let mut history: Vec<Value> = Vec::new(); // 初始化對話紀錄
@@ -62,18 +56,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // 加入使用者訊息到紀錄
         let current_user = "people1";
-        let (target_tdee,diseases)=user_disease(current_user);
+        let (target_tdee, diseases, taboo) = user_disease(current_user);
         let today_cal=todaycalories();
         let remaining = target_tdee - today_cal;
         let prompt_with_context = format!(
-        "(系統提示:目前長輩病歷：{:?}\n今日總目標：{} 大卡\n今日已攝取：{} 大卡\n還剩餘額：{} 大卡)\n\n使用者說：{}",
-          diseases,target_tdee, today_cal, remaining, input
+          "<user_context>\n
+          <health_profile>\n
+          <diseases>{:?}</diseases>\n
+          <taboo>{:?}</taboo>\n
+          </health_profile>\n
+          <daily_stats>\n
+          <target_caloeies>{}</target_caloeies>\n
+          <consumed_calories>{}</consumed_calories>\n
+          <remaining_calories>{}</remaining_calories>\n
+          </daily_stats>\n
+          </user_context>\n\n
+          <user_input>\n\"\"\"{}\"\"\"\n</user_input>",
+          diseases, taboo, target_tdee, today_cal, remaining, input
         );
         history.push(json!({ "role": "user", "parts": [{ "text": prompt_with_context }] }));
 
         // 準備傳送給 API 的資料
         let payload = json!({
-            "system_instruction": { "parts": { "text": full_system_prompt } },
+            "system_instruction": { "parts": { "text": system_prompt } },
             "contents": history,
             "generationConfig": {
                 "responseMimeType": "application/json",
@@ -104,28 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("詳細報告：{}", detailed);
                         println!("==========================");
 
-                        // --- 📂 存入 JSON 資料庫檔案 ---
-                        let file_path = "health_database.json";
-                        let new_record = json!({
-                            "timestamp": Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-                            "calories": cal,
-                            "is_sport": is_sport,
-                            "detailed_report": detailed
-                        });
-
-                        let mut all_records: Vec<Value> = if std::path::Path::new(file_path).exists() {
-                            let content = fs::read_to_string(file_path).unwrap_or_else(|_| "[]".to_string());
-                            serde_json::from_str(&content).unwrap_or_else(|_| vec![])
-                        } else {
-                            vec![]
-                        };
-
-                        all_records.push(new_record);
-                        if let Ok(mut file) = fs::File::create(file_path) {
-                            let json_string = serde_json::to_string_pretty(&all_records).unwrap_or_default();
-                            let _ = file.write_all(json_string.as_bytes());
-                            println!("✅ 報告已更新至資料庫。");
-                        }
+                        save_to_database(cal, is_sport, detailed);
 
                         // 把對話紀錄存入記憶
                         history.push(json!({ "role": "model", "parts": [{ "text": text }] }));
@@ -149,6 +133,70 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn build_xml_system_prompt(config: &Value) -> String {
+  let tasks = config["tasks"].as_array()
+          .map(|a| a.iter().map(|v| format!("  <task>{}</task>", v.as_str().unwrap_or(""))).collect::<Vec<_>>().join("\n"))
+          .unwrap_or_default();
+
+      let styles = config["speaking_styles"].as_array()
+          .map(|a| a.iter().map(|v| format!("  <style>{}</style>", v.as_str().unwrap_or(""))).collect::<Vec<_>>().join("\n"))
+          .unwrap_or_default();
+
+      let words = config["forbidden_words"].as_array()
+          .map(|a| a.iter().map(|v| v.as_str().unwrap_or("")).collect::<Vec<_>>().join(", "))
+          .unwrap_or_default();
+
+  let examples = config["examples"].as_array().map(|a|{
+    a.iter().map(|ex|{
+      let input = ex["user_input"].as_str().or(ex["user_input"].as_str()).unwrap_or("");
+      let output = serde_json::to_string(&ex["AI_output"]).unwrap_or_default();
+      format!(" <example>\n <input>{}</input>\n  <output>{}</output>\n </example>", input , ex["AI_output"])
+    }
+    ).collect::<Vec<_>>().join("\n")
+  }
+    ).unwrap_or_default();
+  format!(
+    "<system_prompt>
+    <role>{}</role>
+    <instructions>
+    {}
+    </instructions>
+    <style_guidelines>
+    {}
+    </style_guidelines>
+    <negative_constraints>絕對嚴禁使用詞彙：{}</negative_constraints>
+    <few_shot_learning>
+    {}
+    </few_shot_learning>
+    <note>詳細報告請務必使用 Markdown 排版，確保家屬易於閱讀。</note>
+    </system_prompt>",
+            config["identity"].as_str().unwrap_or(""), tasks, styles, words, examples
+
+  )
+}
+
+fn save_to_database(cal: i64,is_sport:bool,detailed:&str){
+let file_path = "health_database.json";
+let new_record = json!({
+  "timestamp": Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+  "calories": cal,
+  "is_sport": is_sport,
+  "detailed": detailed
+});
+
+let mut all_records: Vec<Value> = if let Ok(content) = fs::read_to_string(file_path){
+  serde_json::from_str(&content).unwrap_or_else(|_| vec![])
+} else {
+  vec![]
+};
+all_records.push(new_record);
+
+if let Ok(mut file)= fs::File::create(file_path)
+{
+  let _ = file.write_all(serde_json::to_string_pretty(&all_records).unwrap_or_default().as_bytes());
+}
 }
 
 fn todaycalories()->i64{
@@ -187,7 +235,7 @@ fn activity_level() -> f64 {
   }
 }
 
-fn user_disease(user_id: &str) -> (i64, Vec<String>) {
+fn user_disease(user_id: &str) -> (i64, Vec<String>, Vec<String>) {
   let mutiplier = activity_level();
   let content = fs::read_to_string("people.json").unwrap_or_else(|_|"{}".to_string());
   let all_people: Value = serde_json::from_str(&content).unwrap_or_default();
@@ -200,8 +248,8 @@ fn user_disease(user_id: &str) -> (i64, Vec<String>) {
       } else {
         665.0+(9.6*person.weight)+(1.8*person.height)-(4.7*person.age)
       };
-      return ((bmr*mutiplier)as i64,person.disease);
+      return ((bmr*mutiplier)as i64, person.disease, person.taboo);
     }
   }
-  (2000, vec![])
+  (2000, vec![],vec![])
 }
