@@ -1,5 +1,6 @@
 use axum::{Json, extract::State, http::StatusCode};
 use axum_extra::extract::Multipart;
+use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use std::{env, fs, process::Command, sync::Arc};
 use tracing::{error, info};
@@ -28,6 +29,7 @@ pub struct CalorieResponse {
     pub message: String,
     pub total_calories: f64,
     pub detected_items: Vec<FoodItem>,
+    pub image_base64: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -188,8 +190,16 @@ pub async fn yolo_handler(
             calories: (item_calories * 10.0).round() / 10.0,
         });
     }
+    let image_base64 = match fs::read(&yolo_result.image_path) {
+        Ok(bytes) => Some(general_purpose::STANDARD.encode(bytes)),
+        Err(e) => {
+            error!("無法讀取輸出的圖片: {}", e);
+            None
+        }
+    };
     Ok(Json(CalorieResponse {
         message: "辨識與熱量計算完成".into(),
+        image_base64,
         total_calories: (total_calories * 10.0_f64).round() / 10.0,
         detected_items,
     }))
