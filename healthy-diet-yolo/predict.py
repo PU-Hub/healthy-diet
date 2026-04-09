@@ -11,7 +11,7 @@ def run_predict():
     # 1. 配置 CLI 參數
     parser = argparse.ArgumentParser(description="YOLO to Rust Pipeline")
     parser.add_argument("--input", type=str, required=True, help="輸入圖片路徑")
-    parser.add_argument("--model", type=str, default="yolo_scripts/models/best20260317_2.pt", help="模型路徑")
+    parser.add_argument("--model", type=str, default="yolo_scripts/models/best20260404_1.pt", help="模型路徑")
     parser.add_argument("--output", type=str, default="yolo_scripts/results", help="輸出根目錄")
     parser.add_argument("--conf", type=float, default=0.5, help="信心度門檻")
     args = parser.parse_args()
@@ -32,7 +32,7 @@ def run_predict():
             img, 
             imgsz=640, 
             conf=args.conf, 
-            iou=0.5, 
+            iou=0.2, 
             device=0,
             augment=True,
             verbose=False  
