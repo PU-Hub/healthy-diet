@@ -177,6 +177,9 @@ fn build_xml_system_prompt(config: &Value) -> String {
   )
 }
 
+
+////////
+
 fn save_to_database(cal: i64,is_sport:bool,detailed:&str){
 let file_path = "health_database.json";
 let new_record = json!({
@@ -198,6 +201,8 @@ if let Ok(mut file)= fs::File::create(file_path)
   let _ = file.write_all(serde_json::to_string_pretty(&all_records).unwrap_or_default().as_bytes());
 }
 }
+
+
 
 fn todaycalories()->i64{
   let file_path ="health_database.json";

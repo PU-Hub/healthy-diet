@@ -1,8 +1,10 @@
+use serde_json::Value;
 use sqlx::PgPool;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
+    pub ai_prompt_config: Value,
 }
 
 pub struct APIRouter;

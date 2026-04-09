@@ -12,8 +12,10 @@ pub async fn get_profile_handler(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<UserDetailResponse>, (StatusCode, Json<ErrorResponse>)> {
     let user = sqlx::query!(
-        "SELECT id, email, nickname, avatar_url, height, weight, dietary_restrictions 
-         FROM users WHERE id = $1",
+        r#"
+        SELECT id, email, nickname, avatar_url, height, weight, age, gender, taboo, disease
+        FROM users WHERE id = $1
+        "#,
         auth_user.user_id
     )
     .fetch_optional(&state.db)
@@ -35,10 +37,10 @@ pub async fn get_profile_handler(
     ))?;
 
     let ai_records = sqlx::query!(
-        "SELECT id, question, ai_response, created_at 
-         FROM ai_consultations 
-         WHERE user_id = $1 
-         ORDER BY created_at DESC 
+        "SELECT id, question, ai_response, created_at
+         FROM ai_consultations
+         WHERE user_id = $1
+         ORDER BY created_at DESC
          LIMIT 10",
         auth_user.user_id
     )
@@ -71,7 +73,10 @@ pub async fn get_profile_handler(
         avatar_url: user.avatar_url,
         height: user.height,
         weight: user.weight,
-        dietary_restrictions: user.dietary_restrictions,
+        age: user.age,
+        gender: user.gender,
+        taboo: user.taboo,
+        disease: user.disease,
         ai_consultations: consultations,
     }))
 }
@@ -83,19 +88,25 @@ pub async fn update_user_profile_handler(
 ) -> Result<Json<UserDetailResponse>, (StatusCode, Json<ErrorResponse>)> {
     let updated_user = sqlx::query!(
         r#"
-        UPDATE users 
-        SET 
+        UPDATE users
+        SET
             nickname = COALESCE($1, nickname),
             height = COALESCE($2, height),
             weight = COALESCE($3, weight),
-            dietary_restrictions = COALESCE($4, dietary_restrictions)
-        WHERE id = $5
-        RETURNING id, email, nickname, avatar_url, height, weight, dietary_restrictions
+            age = COALESCE($4, age),
+            gender = COALESCE($5, gender),
+            taboo = COALESCE($6, taboo),
+            disease = COALESCE($7, disease)
+        WHERE id = $8
+        RETURNING id, email, nickname, avatar_url, height, weight, age, gender, taboo, disease
         "#,
         payload.nickname,
         payload.height,
         payload.weight,
-        payload.dietary_restrictions,
+        payload.age,
+        payload.gender,
+        payload.taboo.as_deref(),
+        payload.disease.as_deref(),
         auth_user.user_id
     )
     .fetch_one(&state.db)
@@ -117,7 +128,10 @@ pub async fn update_user_profile_handler(
         avatar_url: updated_user.avatar_url,
         height: updated_user.height,
         weight: updated_user.weight,
-        dietary_restrictions: updated_user.dietary_restrictions,
+        age: updated_user.age,
+        gender: updated_user.gender,
+        taboo: updated_user.taboo,
+        disease: updated_user.disease,
         ai_consultations: vec![],
     }))
 }
@@ -175,7 +189,10 @@ mod tests {
             nickname: Some("BigMuscle".to_string()),
             height: Some(180.5),
             weight: None,
-            dietary_restrictions: None,
+            age: Some(28.0),
+            gender: Some("Male".to_string()),
+            taboo: Some(vec!["花生".to_string(), "海鮮".to_string()]),
+            disease: Some(vec!["高血壓".to_string()]),
         };
 
         let result =
@@ -185,14 +202,26 @@ mod tests {
         let response = result.unwrap().0;
         assert_eq!(response.nickname, Some("BigMuscle".to_string()));
         assert_eq!(response.height, Some(180.5));
-        assert_eq!(response.weight, None);
+        assert_eq!(response.age, Some(28.0));
+        assert_eq!(
+            response.taboo,
+            Some(vec!["花生".to_string(), "海鮮".to_string()])
+        );
 
-        let db_user = sqlx::query!("SELECT nickname, height FROM users WHERE id = $1", user.id)
-            .fetch_one(&state.db)
-            .await
-            .unwrap();
+        let db_user = sqlx::query!(
+            "SELECT nickname, age, taboo FROM users WHERE id = $1",
+            user.id
+        )
+        .fetch_one(&state.db)
+        .await
+        .unwrap();
 
         assert_eq!(db_user.nickname, Some("BigMuscle".to_string()));
+        assert_eq!(db_user.age, Some(28.0));
+        assert_eq!(
+            db_user.taboo,
+            Some(vec!["花生".to_string(), "海鮮".to_string()])
+        );
 
         sqlx::query!("DELETE FROM users WHERE email = $1", email)
             .execute(&state.db)

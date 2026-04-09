@@ -65,12 +65,15 @@ pub struct RefreshTokenPayload {
     pub refresh_token: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct UpdateProfilePayload {
     pub nickname: Option<String>,
     pub height: Option<f64>,
     pub weight: Option<f64>,
-    pub dietary_restrictions: Option<String>,
+    pub age: Option<f64>,
+    pub gender: Option<String>,
+    pub taboo: Option<Vec<String>>,
+    pub disease: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -90,7 +93,10 @@ pub struct UserDetailResponse {
     pub avatar_url: Option<String>,
     pub height: Option<f64>,
     pub weight: Option<f64>,
-    pub dietary_restrictions: Option<String>,
+    pub age: Option<f64>,
+    pub gender: Option<String>,
+    pub taboo: Option<Vec<String>>,
+    pub disease: Option<Vec<String>>,
     pub ai_consultations: Vec<AiConsultationRecord>,
 }
 

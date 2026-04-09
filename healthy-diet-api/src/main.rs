@@ -28,7 +28,13 @@ async fn main() {
         .await
         .expect("Failed to connect to DB");
 
-    let app_state = Arc::new(AppState { db: pool });
+    let config_str = fs::read_to_string("AIPrompt.json").expect("Lost AIPrompt.json");
+    let ai_prompt_config: serde_json::Value =
+        serde_json::from_str(&config_str).expect("JSON Formating Error");
+    let app_state = Arc::new(AppState {
+        db: pool,
+        ai_prompt_config,
+    });
 
     let app = create_app(app_state);
 
