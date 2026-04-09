@@ -24,6 +24,8 @@ RUN --mount=type=bind,source=healthy-diet-api/src,target=src \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
+COPY ./healthy-diet-api/AIPrompt.json /AIPrompt.json
+
 # ── Final stage ───────────────────────────────────────────────
 FROM nvidia/cuda:13.1.1-cudnn-runtime-ubuntu24.04 AS final
 ARG UID=10001
@@ -56,7 +58,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     opencv-python-headless==4.12.0.88 \
     numpy==2.2.6
 
-    
+
 #USER appuser
 COPY --from=build /bin/server /bin/
 #COPY healthy-diet-yolo/ /app/yolo_scripts/
