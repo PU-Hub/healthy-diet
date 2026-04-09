@@ -3,6 +3,7 @@ use healthy_diet_api_server::{
     router::create_app,
 };
 use sqlx::postgres::PgPoolOptions;
+use std::fs;
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
