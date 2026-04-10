@@ -217,7 +217,7 @@ pub async fn yolo_handler(
             area_ratio
         };
 
-        let (mut density_modifier, cal_per_gram, max_weight, category_key) =
+        let (density_modifier, cal_per_gram, max_weight, category_key) =
             match det.class_name.as_str() {
                 "grain" => {
                     grain_count += 1;
