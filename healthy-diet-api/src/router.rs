@@ -36,7 +36,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(APIRouter::AI_CONSULT, post(consult_handler))
         .route(APIRouter::DIET, post(yolo_handler))
-        .route(APIRouter::DIET_RECORD, post(diet_records_handler))
+        .route(APIRouter::DIET_RECORD, get(diet_records_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

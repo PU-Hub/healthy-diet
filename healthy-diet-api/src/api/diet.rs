@@ -162,9 +162,6 @@ pub async fn yolo_handler(
             )
         })?;
 
-    let pixel_to_cm = 0.05;
-    let average_height_cm = 3.0;
-
     let mut total_calories = 0.0;
     let mut detected_items = Vec::new();
 
@@ -180,8 +177,19 @@ pub async fn yolo_handler(
         "other",
     ];
     for cat in categories {
-        stats.insert(cat, (0.0_f64, 0.0_f64)); // (Calories, Area)
+        stats.insert(cat, (0.0_f64, 0.0_f64)); // (Calories, Area percentage)
     }
+
+    // 🌟 新的演算法策略：相對面積與基準重量法
+
+    // 1. 假設一張正常的食物照片解析度為 800x800 像素 (如果你的 YOLO 有回傳真實圖片大小更好，這裡先寫死一個基準)
+    let assumed_image_width = 800.0;
+    let assumed_image_height = 800.0;
+    let total_image_area = assumed_image_width * assumed_image_height;
+
+    // 2. 假設如果整個便當盒(佔畫面約60%)塞滿，總重量約為 600g
+    // 因此如果某個食物佔了畫面 100%，它的「基準重量」大約是 1000g
+    let reference_full_screen_weight_g = 1000.0;
 
     for det in yolo_result.detections {
         let x_min = det.bbox[0];
@@ -189,29 +197,39 @@ pub async fn yolo_handler(
         let x_max = det.bbox[2];
         let y_max = det.bbox[3];
 
-        let area_cm2 = (x_max - x_min) * (y_max - y_min) * (pixel_to_cm * pixel_to_cm);
-        let volume_cm3 = area_cm2 * average_height_cm;
+        // 計算該物件的像素面積
+        let bbox_area_pixels = (x_max - x_min) * (y_max - y_min);
 
-        let (density, cal_per_gram, category_key) = match det.class_name.as_str() {
-            "grain" => (1.0, 1.3, "grain"),               // 飯/麵
-            "protein_meat" => (1.0, 2.5, "protein_meat"), // 肉類
-            "protein_bean" => (1.0, 1.4, "protein_bean"), // 豆類/豆腐
-            "vegetable" => (0.3, 0.25, "vegetable"),      // 蔬菜
-            "fruit" => (0.8, 0.5, "fruit"),               // 水果
-            "dairy" => (1.0, 0.6, "dairy"),               // 乳品
-            "nuts" => (0.6, 6.0, "nuts"),                 // 堅果
-            _ => (1.0, 1.0, "other"),                     // 其他未知
+        // 算出佔總畫面的百分比 (0.0 ~ 1.0)
+        let area_ratio = (bbox_area_pixels / total_image_area).clamp(0.01, 1.0);
+
+        // 根據不同類別設定「密度權重」與「每克熱量(kcal/g)」
+        let (density_modifier, cal_per_gram, category_key) = match det.class_name.as_str() {
+            "grain" => (1.2, 1.3, "grain"), // 飯麵：密度適中，熱量中等
+            "protein_meat" => (1.5, 2.5, "protein_meat"), // 肉類：密度高，熱量較高
+            "protein_bean" => (1.3, 1.4, "protein_bean"), // 豆類：密度適中
+            "vegetable" => (0.6, 0.25, "vegetable"), // 蔬菜：密度低(蓬鬆)，熱量極低
+            "fruit" => (1.1, 0.5, "fruit"), // 水果：水分多，密度中等
+            "dairy" => (1.0, 0.6, "dairy"), // 乳品
+            "nuts" => (0.8, 6.0, "nuts"),   // 堅果：密度偏輕，但熱量極高
+            _ => (1.0, 1.0, "other"),       // 其他
         };
 
-        let raw_weight_g = volume_cm3 * density;
-        let weight_g = raw_weight_g.clamp(10.0, 500.0); // 加上合理的上下限防呆
+        // 計算預估重量： 畫面佔比 * 滿版基準重量 * 食物密度權重
+        let raw_weight_g = area_ratio * reference_full_screen_weight_g * density_modifier;
+
+        // 給予合理的重量上下限防呆 (例如一口青菜至少 10g，一塊超大肉排頂多 400g)
+        let weight_g = raw_weight_g.clamp(10.0, 400.0);
+
+        // 計算該品項總熱量
         let item_calories = weight_g * cal_per_gram;
 
         total_calories += item_calories;
 
+        // 存入統計供 AI 與 DB 使用 (這次把 Area 存成「畫面佔比百分比」，對後續分析更有意義)
         if let Some(entry) = stats.get_mut(category_key) {
-            entry.0 += item_calories; // 累加卡路里
-            entry.1 += area_cm2; // 累加面積
+            entry.0 += item_calories;
+            entry.1 += area_ratio * 100.0; // 存成 0~100 的 % 數
         }
 
         detected_items.push(FoodItem {
@@ -221,6 +239,8 @@ pub async fn yolo_handler(
             calories: (item_calories * 10.0).round() / 10.0,
         });
     }
+
+    // let final_total_calories = total_calories.clamp(0.0, 3000.0);
 
     let api_key = env::var(ENVKey::GEMINI_API_KEY).map_err(|e| {
         error!("cannot get env value {:?}", e);
