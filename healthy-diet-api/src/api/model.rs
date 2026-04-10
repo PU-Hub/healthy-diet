@@ -109,3 +109,26 @@ pub struct ConsultRequest {
 pub struct ConsultResponse {
     pub reply: String,
 }
+
+#[derive(Serialize)]
+pub struct DietRecordResponse {
+    pub id: String,
+    pub created_at: String,
+    pub total_calories: f64,
+    pub grain_calories: Option<f64>,
+    pub grain_area: Option<f64>,
+    pub protein_meat_calories: Option<f64>,
+    pub protein_meat_area: Option<f64>,
+    pub protein_bean_calories: Option<f64>,
+    pub protein_bean_area: Option<f64>,
+    pub vegetable_calories: Option<f64>,
+    pub vegetable_area: Option<f64>,
+    pub fruit_calories: Option<f64>,
+    pub fruit_area: Option<f64>,
+    pub dairy_calories: Option<f64>,
+    pub dairy_area: Option<f64>,
+    pub nuts_calories: Option<f64>,
+    pub nuts_area: Option<f64>,
+    pub ai_health_score: Option<i32>,
+    pub ai_evaluation: Option<String>,
+}
