@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     api::model::ErrorResponse,
-    model::{AppState, ENVKey},
+    model::{AppState, ENVKey, OutSideURL},
     utils::jwt::AuthUser,
 };
 
@@ -60,7 +60,6 @@ pub async fn yolo_handler(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> Result<Json<CalorieResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // 1. 取得使用者基本資料 (供 AI 評分參考)
     let user_profile = sqlx::query!(
         "SELECT nickname, height, weight, age, gender, taboo, disease FROM users WHERE id = $1",
         auth_user.user_id
@@ -83,7 +82,6 @@ pub async fn yolo_handler(
         }),
     ))?;
 
-    // 2. 接收並儲存上傳的圖片
     let mut image_data = None;
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         (
@@ -164,14 +162,12 @@ pub async fn yolo_handler(
             )
         })?;
 
-    // 4. 計算各類別面積與卡路里
     let pixel_to_cm = 0.05;
     let average_height_cm = 3.0;
 
     let mut total_calories = 0.0;
     let mut detected_items = Vec::new();
 
-    // 🌟 定義 7 大分類的累加器
     let mut stats = std::collections::HashMap::new();
     let categories = [
         "grain",
@@ -196,7 +192,6 @@ pub async fn yolo_handler(
         let area_cm2 = (x_max - x_min) * (y_max - y_min) * (pixel_to_cm * pixel_to_cm);
         let volume_cm3 = area_cm2 * average_height_cm;
 
-        // 根據新類別設定密度(g/cm3)與熱量(kcal/g)
         let (density, cal_per_gram, category_key) = match det.class_name.as_str() {
             "grain" => (1.0, 1.3, "grain"),               // 飯/麵
             "protein_meat" => (1.0, 2.5, "protein_meat"), // 肉類
@@ -214,7 +209,6 @@ pub async fn yolo_handler(
 
         total_calories += item_calories;
 
-        // 累加到分類統計中
         if let Some(entry) = stats.get_mut(category_key) {
             entry.0 += item_calories; // 累加卡路里
             entry.1 += area_cm2; // 累加面積
@@ -228,14 +222,16 @@ pub async fn yolo_handler(
         });
     }
 
-    // 5. 呼叫 Gemini 取得健康評分與短評
-    let api_key = env::var(ENVKey::GEMINI_API_KEY).unwrap_or_default();
-    let model_name =
-        env::var("GEMINI_MODEL").unwrap_or_else(|_| "gemini-1.5-flash-lite".to_string());
-    let ai_url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-        model_name, api_key
-    );
+    let api_key = env::var(ENVKey::GEMINI_API_KEY).map_err(|e| {
+        error!("cannot get env value {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "Server error".to_string(),
+            }),
+        )
+    })?;
+    let ai_url = format!("{}{}", OutSideURL::GEMINI_API_URL, api_key);
 
     let taboo_str = user_profile.taboo.unwrap_or_default().join("、");
     let disease_str = user_profile.disease.unwrap_or_default().join("、");
@@ -342,7 +338,6 @@ pub async fn yolo_handler(
         .trim()
         .to_string();
 
-    // 預設值 (萬一 JSON 解析失敗仍能存檔)
     let mut ai_score = 60;
     let mut ai_comment = "飲食紀錄已儲存，繼續保持！".to_string();
 
@@ -353,7 +348,6 @@ pub async fn yolo_handler(
         error!("無法將 AI 回覆解析為結構: {}", clean_json);
     }
 
-    // 6. 將所有數據存入資料庫 (diet_records)
     sqlx::query!(
         r#"
         INSERT INTO diet_records (
@@ -402,7 +396,6 @@ pub async fn yolo_handler(
         )
     })?;
 
-    // 7. 回傳結果給前端 (包含圖片與 AI 建議)
     let image_base64 = fs::read(&yolo_result.image_path)
         .ok()
         .map(|b| general_purpose::STANDARD.encode(b));
