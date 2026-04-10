@@ -123,7 +123,6 @@ pub async fn yolo_handler(
         )
     })?;
 
-    // 3. 呼叫 YOLO Python 腳本
     let yolo_script = env::var("YOLO_SCRIPT_PATH")
         .unwrap_or_else(|_| "../healthy-diet-yolo/predict.py".to_string());
     let output = Command::new("python3")
@@ -151,16 +150,28 @@ pub async fn yolo_handler(
         ));
     }
 
-    let yolo_result: YoloScriptOutput =
-        serde_json::from_str(&String::from_utf8_lossy(&output.stdout)).map_err(|e| {
-            error!("解析 YOLO 失敗: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "解析辨識結果失敗".into(),
-                }),
-            )
-        })?;
+    let stdout_str = String::from_utf8_lossy(&output.stdout);
+    let json_start = stdout_str.find('{').unwrap_or(0);
+    let json_end = stdout_str
+        .rfind('}')
+        .unwrap_or(stdout_str.len().saturating_sub(1))
+        + 1;
+
+    let clean_json = if json_start < json_end {
+        &stdout_str[json_start..json_end]
+    } else {
+        "{}"
+    };
+
+    let yolo_result: YoloScriptOutput = serde_json::from_str(clean_json).map_err(|e| {
+        error!("解析 YOLO 失敗: {}, 原始輸出: {}", e, stdout_str);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "解析辨識結果失敗".into(),
+            }),
+        )
+    })?;
 
     let mut total_calories = 0.0;
     let mut detected_items = Vec::new();
@@ -177,19 +188,16 @@ pub async fn yolo_handler(
         "other",
     ];
     for cat in categories {
-        stats.insert(cat, (0.0_f64, 0.0_f64)); // (Calories, Area percentage)
+        stats.insert(cat, (0.0_f64, 0.0_f64)); // (Calories, Area)
     }
 
-    // 🌟 新的演算法策略：相對面積與基準重量法
-
-    // 1. 假設一張正常的食物照片解析度為 800x800 像素 (如果你的 YOLO 有回傳真實圖片大小更好，這裡先寫死一個基準)
+    // 假設一張正常的食物照片解析度為 800x800
     let assumed_image_width = 800.0;
     let assumed_image_height = 800.0;
     let total_image_area = assumed_image_width * assumed_image_height;
 
-    // 2. 假設如果整個便當盒(佔畫面約60%)塞滿，總重量約為 600g
-    // 因此如果某個食物佔了畫面 100%，它的「基準重量」大約是 1000g
-    let reference_full_screen_weight_g = 1000.0;
+    // 將滿版便當的基準重量從 1000g 下調至 600g (一個正常的便當大約是 500~700g)
+    let reference_full_screen_weight_g = 600.0;
 
     for det in yolo_result.detections {
         let x_min = det.bbox[0];
@@ -197,39 +205,33 @@ pub async fn yolo_handler(
         let x_max = det.bbox[2];
         let y_max = det.bbox[3];
 
-        // 計算該物件的像素面積
         let bbox_area_pixels = (x_max - x_min) * (y_max - y_min);
-
-        // 算出佔總畫面的百分比 (0.0 ~ 1.0)
         let area_ratio = (bbox_area_pixels / total_image_area).clamp(0.01, 1.0);
 
-        // 根據不同類別設定「密度權重」與「每克熱量(kcal/g)」
-        let (density_modifier, cal_per_gram, category_key) = match det.class_name.as_str() {
-            "grain" => (1.2, 1.3, "grain"), // 飯麵：密度適中，熱量中等
-            "protein_meat" => (1.5, 2.5, "protein_meat"), // 肉類：密度高，熱量較高
-            "protein_bean" => (1.3, 1.4, "protein_bean"), // 豆類：密度適中
-            "vegetable" => (0.6, 0.25, "vegetable"), // 蔬菜：密度低(蓬鬆)，熱量極低
-            "fruit" => (1.1, 0.5, "fruit"), // 水果：水分多，密度中等
-            "dairy" => (1.0, 0.6, "dairy"), // 乳品
-            "nuts" => (0.8, 6.0, "nuts"),   // 堅果：密度偏輕，但熱量極高
-            _ => (1.0, 1.0, "other"),       // 其他
-        };
+        // 🌟 為每個類別設定專屬的「最大重量天花板 (max_weight)」
+        let (density_modifier, cal_per_gram, max_weight, category_key) =
+            match det.class_name.as_str() {
+                "grain" => (1.2, 1.3, 250.0, "grain"), // 飯類：最多 250g (約一碗半)
+                "protein_meat" => (1.5, 2.5, 180.0, "protein_meat"), // 肉類：最多 180g (已經是一塊大排骨了)
+                "protein_bean" => (1.3, 1.4, 150.0, "protein_bean"), // 豆類/豆腐：最多 150g
+                "vegetable" => (0.6, 0.25, 120.0, "vegetable"),      // 蔬菜：體積大但輕，最多 120g
+                "fruit" => (1.1, 0.5, 150.0, "fruit"),               // 水果：最多 150g
+                "dairy" => (1.0, 0.6, 250.0, "dairy"),               // 乳品：一杯約 250g
+                "nuts" => (0.8, 6.0, 40.0, "nuts"), // 堅果：熱量超高，一小把最多 40g
+                _ => (1.0, 1.0, 150.0, "other"),    // 其他未知
+            };
 
-        // 計算預估重量： 畫面佔比 * 滿版基準重量 * 食物密度權重
         let raw_weight_g = area_ratio * reference_full_screen_weight_g * density_modifier;
 
-        // 給予合理的重量上下限防呆 (例如一口青菜至少 10g，一塊超大肉排頂多 400g)
-        let weight_g = raw_weight_g.clamp(10.0, 400.0);
-
-        // 計算該品項總熱量
+        // 嚴格限制重量上下限
+        let weight_g = raw_weight_g.clamp(5.0, max_weight);
         let item_calories = weight_g * cal_per_gram;
 
         total_calories += item_calories;
 
-        // 存入統計供 AI 與 DB 使用 (這次把 Area 存成「畫面佔比百分比」，對後續分析更有意義)
         if let Some(entry) = stats.get_mut(category_key) {
             entry.0 += item_calories;
-            entry.1 += area_ratio * 100.0; // 存成 0~100 的 % 數
+            entry.1 += area_ratio * 100.0;
         }
 
         detected_items.push(FoodItem {
@@ -239,6 +241,9 @@ pub async fn yolo_handler(
             calories: (item_calories * 10.0).round() / 10.0,
         });
     }
+
+    // 總熱量防呆，避免多個框框重疊導致熱量加總超過人類極限
+    total_calories = total_calories.clamp(0.0, 1800.0);
 
     // let final_total_calories = total_calories.clamp(0.0, 3000.0);
 
