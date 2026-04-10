@@ -1,5 +1,5 @@
 #![cfg(test)]
-use std::{env, sync::Arc};
+use std::{env, fs, sync::Arc};
 
 use axum::{Json, extract::State};
 use sqlx::PgPool;
@@ -17,7 +17,13 @@ pub async fn setup_db() -> Arc<AppState> {
     let pool = PgPool::connect(&database_url)
         .await
         .expect("Failed to connect to DB");
-    Arc::new(AppState { db: pool })
+    let config_str = fs::read_to_string("AIPrompt.json").expect("Lost AIPrompt.json");
+    let ai_prompt_config: serde_json::Value =
+        serde_json::from_str(&config_str).expect("JSON Formating Error");
+    Arc::new(AppState {
+        db: pool,
+        ai_prompt_config,
+    })
 }
 
 pub async fn register_test_account(state: Arc<AppState>, email_name: String) -> (String, String) {
