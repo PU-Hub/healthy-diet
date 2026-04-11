@@ -273,7 +273,11 @@ pub async fn yolo_handler(
     let taboo_str = user_profile.taboo.unwrap_or_default().join("、");
     let disease_str = user_profile.disease.unwrap_or_default().join("、");
 
-    let system_instruction = "你是一位嚴格但溫暖的專業營養師。請根據資料進行評估。1.給予評分(0~100) 2.簡短評語(45字內) 3.必須且只能回傳 JSON 格式：{\"score\": 85, \"comment\": \"評語\"}";
+    let system_instruction = "你是一位熱情且鼓勵為主的專業營養師。請根據資料評估：\n\n\
+        1. 給予健康評分(0~100)。評分標準要符合一般人的飲食現況，若有澱粉、肉與蔬菜，即使比例不完美，也應給予 60~75 分的基礎分。\n\
+        2. 只有在完全沒有蔬菜或熱量破千時才給予低於 50 分。\n\
+        3. 給予一段具建設性且口吻溫暖的建議(45字內)。\n\
+        4. 必須回傳 JSON：{\"score\": 70, \"comment\": \"有菜有肉很均衡，如果飯換成五穀飯會更棒喔！\"}";
     let user_prompt = format!(
         "年齡:{} / 性別:{} / 疾病:{} / 禁忌:{} / 總熱量:{:.1}kcal (穀:{:.1}, 豆:{:.1}, 肉:{:.1}, 蔬:{:.1})",
         user_profile
