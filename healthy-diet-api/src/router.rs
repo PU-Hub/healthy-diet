@@ -2,6 +2,7 @@ use crate::{
     api::{
         consult::consult_handler,
         diet::yolo_handler,
+        diet_image::diet_image_handler,
         diet_record::diet_records_handler,
         health::healthy_server_handler,
         login::login_handler,
@@ -37,6 +38,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::AI_CONSULT, post(consult_handler))
         .route(APIRouter::DIET, post(yolo_handler))
         .route(APIRouter::DIET_RECORD, get(diet_records_handler))
+        .route(APIRouter::DIET_IMAGE, get(diet_image_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

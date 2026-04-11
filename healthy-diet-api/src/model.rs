@@ -21,6 +21,7 @@ impl APIRouter {
     pub const DIET: &'static str = "/diet";
     pub const HEALTH: &'static str = "/health";
     pub const DIET_RECORD: &'static str = "/diet_record";
+    pub const DIET_IMAGE: &'static str = "/diet_image";
 }
 
 pub struct ENVKey;
