@@ -353,9 +353,6 @@ pub async fn yolo_handler(
         .trim()
         .to_string();
 
-    // ==========================================
-    // 🌟 核心優化：更聰明的 AI 解析
-    // ==========================================
     let mut ai_score = 60;
     let mut ai_comment = "飲食紀錄已儲存！".to_string();
 
@@ -373,11 +370,16 @@ pub async fn yolo_handler(
         error!("AI 解析失敗，顯示原始輸出：{}", clean_json_ai);
     }
 
+    let result_filename = std::path::Path::new(&yolo_result.image_path)
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or(&yolo_result.image_path);
+
     // 5. 存入資料庫
     sqlx::query!(
-        r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
-        auth_user.user_id, total_calories, stats["grain"].0, stats["grain"].1, stats["protein_meat"].0, stats["protein_meat"].1, stats["vegetable"].0, stats["vegetable"].1, ai_score, ai_comment
+        r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation, result_image_path)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
+        auth_user.user_id, total_calories, stats["grain"].0, stats["grain"].1, stats["protein_meat"].0, stats["protein_meat"].1, stats["vegetable"].0, stats["vegetable"].1, ai_score, ai_comment, result_filename
     )
     .execute(&state.db).await.ok();
 
