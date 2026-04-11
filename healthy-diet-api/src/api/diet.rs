@@ -144,10 +144,12 @@ pub async fn yolo_handler(
         })?;
 
     if !output.status.success() {
+        let stderror = String::from_utf8_lossy(&output.stderr);
+        error!("!辨識過程出錯: {:?}", stderror);
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: "YOLO 辨識過程出錯".into(),
+                error: "YOLO 辨識過程出現錯誤".into(),
             }),
         ));
     }
