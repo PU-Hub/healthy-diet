@@ -338,11 +338,13 @@ pub async fn yolo_handler(
         ai_score = evaluation.score.clamp(0, 100);
         ai_comment = evaluation.comment;
     } else {
-        // 如果解析失敗，且 AI 有回傳文字，直接把原始文字當評語
+        // 如果解析失敗，且 AI 有回傳文字
         if !clean_json_ai.is_empty() && clean_json_ai != "{}" {
-            ai_comment = clean_json_ai;
-            ai_score = 75; // 預設一個中上的分數
+            // 🌟 這裡加上 .clone()，這樣 clean_json_ai 就不會被搬走
+            ai_comment = clean_json_ai.clone();
+            ai_score = 75;
         }
+        // 現在這裡就能安全地讀取 clean_json_ai 了
         error!("AI 解析失敗，顯示原始輸出：{}", clean_json_ai);
     }
 
