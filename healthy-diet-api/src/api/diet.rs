@@ -203,7 +203,6 @@ pub async fn yolo_handler(
         let bbox_area_pixels = (x_max - x_min) * (y_max - y_min);
         let area_ratio = (bbox_area_pixels / total_image_area).clamp(0.0, 1.0);
 
-        // 非線性縮放：大面積偵測框的重量增長變緩
         let adjusted_ratio = if area_ratio > 0.15 {
             0.15 + (area_ratio - 0.15) * 0.5
         } else {
@@ -356,15 +355,10 @@ pub async fn yolo_handler(
         error!("AI 解析失敗，顯示原始輸出：{}", clean_json_ai);
     }
 
-    let result_filename = std::path::Path::new(&yolo_result.image_path)
-        .file_name()
-        .and_then(|f| f.to_str())
-        .unwrap_or(&yolo_result.image_path);
-
     sqlx::query!(
         r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation, result_image_path)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
-        auth_user.user_id, total_calories, stats["grain"].0, stats["grain"].1, stats["protein_meat"].0, stats["protein_meat"].1, stats["vegetable"].0, stats["vegetable"].1, ai_score, ai_comment, result_filename
+        auth_user.user_id, total_calories, stats["grain"].0, stats["grain"].1, stats["protein_meat"].0, stats["protein_meat"].1, stats["vegetable"].0, stats["vegetable"].1, ai_score, ai_comment, &yolo_result.image_path
     )
     .execute(&state.db).await.ok();
 
