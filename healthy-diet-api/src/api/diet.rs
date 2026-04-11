@@ -35,7 +35,6 @@ pub struct CalorieResponse {
     pub total_calories: f64,
     pub detected_items: Vec<FoodItem>,
     pub image_base64: Option<String>,
-    // 🌟 讓前端也能馬上拿到評分與建議
     pub ai_score: i32,
     pub ai_comment: String,
 }
@@ -48,7 +47,6 @@ pub struct FoodItem {
     pub calories: f64,
 }
 
-// 🌟 定義接收 AI 回傳的 JSON 結構
 #[derive(Deserialize, Debug)]
 struct AiEvaluationFormat {
     score: i32,
@@ -60,7 +58,6 @@ pub async fn yolo_handler(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> Result<Json<CalorieResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // 1. 取得使用者資料
     let user_profile = sqlx::query!(
         "SELECT nickname, height, weight, age, gender, taboo, disease FROM users WHERE id = $1",
         auth_user.user_id
@@ -83,7 +80,6 @@ pub async fn yolo_handler(
         }),
     ))?;
 
-    // 2. 讀取圖片
     let mut image_data = None;
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         (
@@ -125,7 +121,6 @@ pub async fn yolo_handler(
         )
     })?;
 
-    // 3. 執行 YOLO
     let yolo_script = env::var("YOLO_SCRIPT_PATH")
         .unwrap_or_else(|_| "../healthy-diet-yolo/predict.py".to_string());
     let output = Command::new("python3")
@@ -176,9 +171,6 @@ pub async fn yolo_handler(
         )
     })?;
 
-    // ==========================================
-    // 🌟 核心優化：熱量計算與防呆
-    // ==========================================
     let mut total_calories = 0.0;
     let mut detected_items = Vec::new();
     let mut stats = std::collections::HashMap::new();
@@ -257,7 +249,6 @@ pub async fn yolo_handler(
         });
     }
 
-    // 總熱量上限平滑修正
     if total_calories > 950.0 {
         total_calories = 850.0 + (total_calories - 850.0) * 0.2;
     }
@@ -270,7 +261,6 @@ pub async fn yolo_handler(
             .ok()
             .map(|b| general_purpose::STANDARD.encode(b));
 
-        // 直接回傳結果，不寫入 DB，不調用 AI
         return Ok(Json(CalorieResponse {
             message: "辨識範圍過小".into(),
             image_base64,
@@ -281,7 +271,6 @@ pub async fn yolo_handler(
         }));
     }
 
-    // 4. Gemini AI 分析
     let api_key = env::var(ENVKey::GEMINI_API_KEY).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -360,13 +349,10 @@ pub async fn yolo_handler(
         ai_score = evaluation.score.clamp(0, 100);
         ai_comment = evaluation.comment;
     } else {
-        // 如果解析失敗，且 AI 有回傳文字
         if !clean_json_ai.is_empty() && clean_json_ai != "{}" {
-            // 🌟 這裡加上 .clone()，這樣 clean_json_ai 就不會被搬走
             ai_comment = clean_json_ai.clone();
             ai_score = 75;
         }
-        // 現在這裡就能安全地讀取 clean_json_ai 了
         error!("AI 解析失敗，顯示原始輸出：{}", clean_json_ai);
     }
 
@@ -375,7 +361,6 @@ pub async fn yolo_handler(
         .and_then(|f| f.to_str())
         .unwrap_or(&yolo_result.image_path);
 
-    // 5. 存入資料庫
     sqlx::query!(
         r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation, result_image_path)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
