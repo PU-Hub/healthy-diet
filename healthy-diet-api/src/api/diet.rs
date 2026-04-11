@@ -60,7 +60,7 @@ pub async fn yolo_handler(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> Result<Json<CalorieResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // 1. 取得使用者資料 (這部分維持原樣)
+    // 1. 取得使用者資料
     let user_profile = sqlx::query!(
         "SELECT nickname, height, weight, age, gender, taboo, disease FROM users WHERE id = $1",
         auth_user.user_id
@@ -83,7 +83,7 @@ pub async fn yolo_handler(
         }),
     ))?;
 
-    // 2. 讀取圖片 (這部分維持原樣)
+    // 2. 讀取圖片
     let mut image_data = None;
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         (
@@ -125,7 +125,7 @@ pub async fn yolo_handler(
         )
     })?;
 
-    // 3. 執行 YOLO (這部分維持原樣)
+    // 3. 執行 YOLO
     let yolo_script = env::var("YOLO_SCRIPT_PATH")
         .unwrap_or_else(|_| "../healthy-diet-yolo/predict.py".to_string());
     let output = Command::new("python3")
@@ -175,7 +175,7 @@ pub async fn yolo_handler(
     })?;
 
     // ==========================================
-    // 🌟 核心改動：精準熱量計算法
+    // 🌟 核心優化：熱量計算與防呆
     // ==========================================
     let mut total_calories = 0.0;
     let mut detected_items = Vec::new();
@@ -195,9 +195,8 @@ pub async fn yolo_handler(
     }
 
     let total_image_area = 800.0 * 800.0;
-    let reference_full_screen_weight_g = 550.0; // 下調基準值，更貼近一般便當重量
+    let reference_full_screen_weight_g = 550.0;
 
-    // 用於記錄已偵測到的類別數量，解決「雙主菜」或「重複偵測」導致熱量翻倍
     let mut meat_count = 0;
     let mut grain_count = 0;
 
@@ -210,7 +209,7 @@ pub async fn yolo_handler(
         let bbox_area_pixels = (x_max - x_min) * (y_max - y_min);
         let area_ratio = (bbox_area_pixels / total_image_area).clamp(0.0, 1.0);
 
-        // 🌟 修正：非線性面積縮放。如果一個框佔比很大，代表食物鋪得散，重量不應線性增加。
+        // 非線性縮放：大面積偵測框的重量增長變緩
         let adjusted_ratio = if area_ratio > 0.15 {
             0.15 + (area_ratio - 0.15) * 0.5
         } else {
@@ -221,13 +220,11 @@ pub async fn yolo_handler(
             match det.class_name.as_str() {
                 "grain" => {
                     grain_count += 1;
-                    // 如果偵測到多個飯框（通常是誤判），大幅縮減後續權重
                     let m = if grain_count > 1 { 0.4 } else { 1.1 };
                     (m, 1.3, 220.0, "grain")
                 }
                 "protein_meat" => {
                     meat_count += 1;
-                    // 🌟 解決雙拼關鍵：第二個肉框（如叉燒+燒肉）權重打 5 折，避免加總變 1100
                     let m = if meat_count > 1 { 0.5 } else { 1.3 };
                     (m, 2.3, 160.0, "protein_meat")
                 }
@@ -258,13 +255,12 @@ pub async fn yolo_handler(
         });
     }
 
-    // 🌟 最終總熱量防呆：一般正常便當單餐極少超過 950 kcal
+    // 總熱量上限平滑修正
     if total_calories > 950.0 {
-        total_calories = 850.0 + (total_calories - 850.0) * 0.2; // 超過部分做大幅平滑壓縮
+        total_calories = 850.0 + (total_calories - 850.0) * 0.2;
     }
-    // ==========================================
 
-    // 4. Gemini AI 分析 (維持原樣)
+    // 4. Gemini AI 分析
     let api_key = env::var(ENVKey::GEMINI_API_KEY).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -277,7 +273,7 @@ pub async fn yolo_handler(
     let taboo_str = user_profile.taboo.unwrap_or_default().join("、");
     let disease_str = user_profile.disease.unwrap_or_default().join("、");
 
-    let system_instruction = "你是一位嚴格但溫暖的專業營養師。請根據資料進行評估。1.給予評分(0~100) 2.簡短評語(45字內) 3.回傳JSON格式。";
+    let system_instruction = "你是一位嚴格但溫暖的專業營養師。請根據資料進行評估。1.給予評分(0~100) 2.簡短評語(45字內) 3.必須且只能回傳 JSON 格式：{\"score\": 85, \"comment\": \"評語\"}";
     let user_prompt = format!(
         "年齡:{} / 性別:{} / 疾病:{} / 禁忌:{} / 總熱量:{:.1}kcal (穀:{:.1}, 豆:{:.1}, 肉:{:.1}, 蔬:{:.1})",
         user_profile
@@ -325,20 +321,32 @@ pub async fn yolo_handler(
         .as_str()
         .unwrap_or("{}")
         .to_string();
+
     let clean_json_ai = text_reply
         .replace("```json", "")
         .replace("```", "")
         .trim()
         .to_string();
 
+    // ==========================================
+    // 🌟 核心優化：更聰明的 AI 解析
+    // ==========================================
     let mut ai_score = 60;
     let mut ai_comment = "飲食紀錄已儲存！".to_string();
+
     if let Ok(evaluation) = serde_json::from_str::<AiEvaluationFormat>(&clean_json_ai) {
         ai_score = evaluation.score.clamp(0, 100);
         ai_comment = evaluation.comment;
+    } else {
+        // 如果解析失敗，且 AI 有回傳文字，直接把原始文字當評語
+        if !clean_json_ai.is_empty() && clean_json_ai != "{}" {
+            ai_comment = clean_json_ai;
+            ai_score = 75; // 預設一個中上的分數
+        }
+        error!("AI 解析失敗，顯示原始輸出：{}", clean_json_ai);
     }
 
-    // 5. 存入資料庫與回傳 (維持原樣)
+    // 5. 存入資料庫
     sqlx::query!(
         r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
