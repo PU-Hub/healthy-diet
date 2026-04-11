@@ -262,6 +262,25 @@ pub async fn yolo_handler(
         total_calories = 850.0 + (total_calories - 850.0) * 0.2;
     }
 
+    if total_calories < 150.0 {
+        let ai_score = 0;
+        let ai_comment = "偵測到的食物分量較少，建議將食物移至畫面中心並確保光線充足，以便為您提供更精確的營養分析。".to_string();
+
+        let image_base64 = fs::read(&yolo_result.image_path)
+            .ok()
+            .map(|b| general_purpose::STANDARD.encode(b));
+
+        // 直接回傳結果，不寫入 DB，不調用 AI
+        return Ok(Json(CalorieResponse {
+            message: "辨識範圍過小".into(),
+            image_base64,
+            total_calories: (total_calories * 10.0).round() / 10.0,
+            detected_items,
+            ai_score,
+            ai_comment,
+        }));
+    }
+
     // 4. Gemini AI 分析
     let api_key = env::var(ENVKey::GEMINI_API_KEY).map_err(|_| {
         (
