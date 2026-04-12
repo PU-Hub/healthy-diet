@@ -44,7 +44,7 @@ pub async fn weekly_stats_handler(
         r#"
         SELECT record_date::TEXT as date_str, visit_count
         FROM daily_stats
-        WHERE record_date >= CURRENT_DATE - INTERVAL '6 days'
+        WHERE record_date >= CURRENT_DATE - INTERVAL '29 days'
         ORDER BY record_date ASC
         "#
     )
