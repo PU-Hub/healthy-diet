@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT record_date::TEXT as date_str, visit_count\n        FROM daily_stats\n        WHERE record_date = CURRENT_DATE\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date_str",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "visit_count",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      false
+    ]
+  },
+  "hash": "a446741dac47c505a37d7818eabd0e04e8e216704a3319850e997e41e402a863"
+}
