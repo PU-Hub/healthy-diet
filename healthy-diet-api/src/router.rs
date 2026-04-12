@@ -40,7 +40,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::DIET, post(yolo_handler))
         .route(APIRouter::DIET_RECORD, get(diet_records_handler))
         .route(APIRouter::DIET_IMAGE, get(diet_image_handler))
-        .route(APIRouter::TODAY_STATS, get(weekly_stats_handler))
+        .route(APIRouter::WEEK_STATS, get(weekly_stats_handler))
         .route(APIRouter::RECORD, post(update_user_profile_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
