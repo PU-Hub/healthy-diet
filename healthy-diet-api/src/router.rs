@@ -7,7 +7,7 @@ use crate::{
         health::healthy_server_handler,
         login::login_handler,
         ping::ping_handler,
-        record::today_stats_handler,
+        record::weekly_stats_handler,
         refresh::refresh_handler,
         register::register_handler,
         user::{get_profile_handler, update_user_profile_handler},
@@ -40,7 +40,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::DIET, post(yolo_handler))
         .route(APIRouter::DIET_RECORD, get(diet_records_handler))
         .route(APIRouter::DIET_IMAGE, get(diet_image_handler))
-        .route(APIRouter::TODAY_STATS, get(today_stats_handler))
+        .route(APIRouter::TODAY_STATS, get(weekly_stats_handler))
         .route(APIRouter::RECORD, post(update_user_profile_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)

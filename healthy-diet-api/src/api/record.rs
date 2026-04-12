@@ -2,7 +2,6 @@ use crate::{api::model::ErrorResponse, model::AppState};
 use axum::{Json, extract::State, http::StatusCode};
 use serde::Serialize;
 use serde_json::json;
-use sqlx::types::chrono::Local;
 use std::sync::Arc;
 use tracing::error;
 
