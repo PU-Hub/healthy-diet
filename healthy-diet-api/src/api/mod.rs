@@ -6,6 +6,7 @@ pub mod health;
 pub mod login;
 pub mod model;
 pub mod ping;
+pub mod record;
 pub mod refresh;
 pub mod register;
 pub mod user;
