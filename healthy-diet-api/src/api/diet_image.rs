@@ -1,11 +1,7 @@
 use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
-use axum::{
-    Json,
-    extract::{Path, State},
-    http::StatusCode,
-};
+use axum::{Json, extract::State, http::StatusCode};
 use base64::{Engine as _, engine::general_purpose};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
@@ -15,15 +11,19 @@ pub struct ImageResponse {
     pub message: String,
     pub image_base64: Option<String>,
 }
+#[derive(Deserialize)]
+pub struct ImageRequest {
+    pub record_id: Uuid,
+}
 
 pub async fn diet_image_handler(
     auth_user: AuthUser,
     State(state): State<Arc<AppState>>,
-    Path(record_id): Path<Uuid>,
+    Json(payload): Json<ImageRequest>,
 ) -> Result<Json<ImageResponse>, (StatusCode, Json<ErrorResponse>)> {
     let record = sqlx::query!(
         "SELECT result_image_path FROM diet_records WHERE id = $1 AND user_id = $2",
-        record_id,
+        payload.record_id,
         auth_user.user_id
     )
     .fetch_optional(&state.db)
