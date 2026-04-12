@@ -38,20 +38,21 @@ pub async fn record_visit_handler(
     Ok(Json(json!({ "message": "Visit recorded successfully" })))
 }
 
-pub async fn today_stats_handler(
+pub async fn weekly_stats_handler(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<DailyStatsResponse>, (StatusCode, Json<ErrorResponse>)> {
-    let record = sqlx::query!(
+) -> Result<Json<Vec<DailyStatsResponse>>, (StatusCode, Json<ErrorResponse>)> {
+    let records = sqlx::query!(
         r#"
         SELECT record_date::TEXT as date_str, visit_count
         FROM daily_stats
-        WHERE record_date = CURRENT_DATE
+        WHERE record_date >= CURRENT_DATE - INTERVAL '6 days'
+        ORDER BY record_date ASC
         "#
     )
-    .fetch_optional(&state.db)
+    .fetch_all(&state.db)
     .await
     .map_err(|e| {
-        error!("查詢每日人數失敗: {:?}", e);
+        error!("查詢近期造訪人數失敗: {:?}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -60,14 +61,13 @@ pub async fn today_stats_handler(
         )
     })?;
 
-    match record {
-        Some(row) => Ok(Json(DailyStatsResponse {
+    let stats: Vec<DailyStatsResponse> = records
+        .into_iter()
+        .map(|row| DailyStatsResponse {
             date: row.date_str.unwrap_or_default(),
             visit_count: row.visit_count,
-        })),
-        None => Ok(Json(DailyStatsResponse {
-            date: Local::now().format("%Y-%m-%d").to_string(),
-            visit_count: 0,
-        })),
-    }
+        })
+        .collect();
+
+    Ok(Json(stats))
 }
