@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT record_date::TEXT as date_str, visit_count\n        FROM daily_stats\n        WHERE record_date >= CURRENT_DATE - INTERVAL '6 days'\n        ORDER BY record_date ASC\n        ",
+  "query": "\n        SELECT record_date::TEXT as date_str, visit_count\n        FROM daily_stats\n        WHERE record_date >= CURRENT_DATE - INTERVAL '29 days'\n        ORDER BY record_date ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "0409b855e3fb6d105f49244826629104251cb91e8025345914bb107a4e694ac9"
+  "hash": "4efff257bc565faf4b8eb05d05ae239a073266c62290d963938ff02e72f2974e"
 }
