@@ -9,7 +9,6 @@ use uuid::Uuid;
 
 use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
-// --- YOLO 腳本輸出的反序列化結構 ---
 #[derive(Deserialize, Debug)]
 pub struct YoloScriptOutput {
     pub status: String,
@@ -26,20 +25,20 @@ pub struct Detection {
     pub bbox: [f64; 4], // [x_min, y_min, x_max, y_max]
 }
 
-// --- 萃取出的乾淨食物特徵 (準備存入 DB 與回傳前端) ---
-#[derive(Serialize, Deserialize, Debug)]
+// 準備存入資料庫與回傳前端的乾淨資料
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExtractedFoodItem {
     pub class: String,
     pub confidence: f64,
-    pub area_ratio: f64, // 佔總食物體積的比例 (方案 A)
+    pub area_ratio: f64, // 方案 A：佔總食物體積（面積加總）之比例
 }
 
-// --- 回傳給前端的最終 JSON 結構 ---
+// 回傳給前端的 JSON 結構
 #[derive(Serialize)]
 pub struct VisionResponse {
     pub message: String,
-    pub draft_id: String, // 草稿單號 (供前端呼叫 Agent 使用)
-    pub image_base64: Option<String>,
+    pub draft_id: String,             // 重要：後續 Agent 修正用的 Key
+    pub image_base64: Option<String>, // 給使用者看是否有框選錯誤
     pub items: Vec<ExtractedFoodItem>,
 }
 
@@ -48,27 +47,7 @@ pub async fn yolo_handler(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> Result<Json<VisionResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // 1. 驗證使用者是否存在 (保留你原本的安全機制)
-    let user_profile = sqlx::query!("SELECT id FROM users WHERE id = $1", auth_user.user_id)
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|e| {
-            error!("DB 錯誤: {:?}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "資料庫連線錯誤".into(),
-                }),
-            )
-        })?
-        .ok_or((
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "找不到使用者".into(),
-            }),
-        ))?;
-
-    // 2. 接收並儲存上傳的圖片
+    // 1. 讀取圖片數據
     let mut image_data = None;
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         (
@@ -98,7 +77,6 @@ pub async fn yolo_handler(
         }),
     ))?;
 
-    // 產生任務單號 (此 UUID 將貫穿整個草稿與正式紀錄)
     let draft_id = Uuid::new_v4();
     let input_path = format!("/app/uploads/{}.jpg", draft_id);
 
@@ -107,12 +85,12 @@ pub async fn yolo_handler(
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: "伺服器儲存檔案失敗".into(),
+                error: "伺服器儲存圖片失敗".into(),
             }),
         )
     })?;
 
-    // 3. 呼叫 YOLO 辨識腳本
+    // 2. 執行 YOLO 辨識
     let yolo_script = env::var("YOLO_SCRIPT_PATH")
         .unwrap_or_else(|_| "../healthy-diet-yolo/predict.py".to_string());
 
@@ -122,7 +100,7 @@ pub async fn yolo_handler(
         .arg(&input_path)
         .output()
         .map_err(|e| {
-            error!("YOLO CLI 執行錯誤: {:?}", e);
+            error!("YOLO 執行錯誤: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
@@ -132,117 +110,71 @@ pub async fn yolo_handler(
         })?;
 
     if !output.status.success() {
-        let stderror = String::from_utf8_lossy(&output.stderr);
-        error!("!辨識過程出錯: {:?}", stderror);
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: "YOLO 辨識過程出現錯誤".into(),
+                error: "YOLO 辨識出錯".into(),
             }),
         ));
     }
 
-    // 4. 解析 YOLO JSON 輸出
+    // 3. 解析結果並計算佔比 (方案 A)
     let stdout_str = String::from_utf8_lossy(&output.stdout);
     let json_start = stdout_str.find('{').unwrap_or(0);
-    let json_end = stdout_str
-        .rfind('}')
-        .unwrap_or(stdout_str.len().saturating_sub(1))
-        + 1;
-    let clean_json = if json_start < json_end {
-        &stdout_str[json_start..json_end]
-    } else {
-        "{}"
-    };
+    let json_end = stdout_str.rfind('}').unwrap_or(stdout_str.len()) + 1;
+    let yolo_result: YoloScriptOutput = serde_json::from_str(&stdout_str[json_start..json_end])
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "解析結果失敗".into(),
+                }),
+            )
+        })?;
 
-    let yolo_result: YoloScriptOutput = serde_json::from_str(clean_json).map_err(|e| {
-        error!("解析 YOLO 失敗: {}, 原始輸出: {}", e, stdout_str);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "解析辨識結果失敗".into(),
-            }),
-        )
-    })?;
-
-    // ==========================================
-    // 核心演算法：方案 A (體積貢獻指數法)
-    // ==========================================
-
-    // 步驟 1: 計算所有食物框的面積總和
     let mut total_food_area = 0.0;
     for det in &yolo_result.detections {
-        let width = det.bbox[2] - det.bbox[0];
-        let height = det.bbox[3] - det.bbox[1];
-        total_food_area += width * height;
+        total_food_area += (det.bbox[2] - det.bbox[0]) * (det.bbox[3] - det.bbox[1]);
     }
 
     let mut extracted_items = Vec::new();
-
-    // 步驟 2: 計算每個物件的相對面積佔比
     if total_food_area > 0.0 {
         for det in yolo_result.detections {
-            let width = det.bbox[2] - det.bbox[0];
-            let height = det.bbox[3] - det.bbox[1];
-            let bbox_area = width * height;
-
-            // 計算比例，並四捨五入到小數點後三位
-            let area_ratio = bbox_area / total_food_area;
-            let rounded_ratio = (area_ratio * 1000.0).round() / 1000.0;
-
+            let bbox_area = (det.bbox[2] - det.bbox[0]) * (det.bbox[3] - det.bbox[1]);
             extracted_items.push(ExtractedFoodItem {
                 class: det.class_name,
                 confidence: (det.confidence * 100.0).round() / 100.0,
-                area_ratio: rounded_ratio,
+                area_ratio: ((bbox_area / total_food_area) * 1000.0).round() / 1000.0,
             });
         }
-    } else {
-        // 如果完全沒有辨識到任何食物，提早結束並回傳提示
-        let image_base64 = fs::read(&yolo_result.image_path)
-            .ok()
-            .map(|b| general_purpose::STANDARD.encode(b));
-        return Ok(Json(VisionResponse {
-            message: "未偵測到明顯的食物，請重新拍攝。".into(),
-            draft_id: draft_id.to_string(),
-            image_base64,
-            items: vec![],
-        }));
     }
 
-    // ==========================================
-    // 資料庫存檔：寫入 diet_drafts 草稿表
-    // ==========================================
-
-    // 將整理好的陣列轉為 JSONB 格式
     let items_jsonb = serde_json::to_value(&extracted_items).unwrap_or(json!([]));
-
-    let insert_result = sqlx::query!(
-        r#"INSERT INTO diet_drafts (id, user_id, image_path, detected_items)
-           VALUES ($1, $2, $3, $4)"#,
+    sqlx::query!(
+        "INSERT INTO diet_drafts (id, user_id, image_path, detected_items) VALUES ($1, $2, $3, $4)",
         draft_id,
         auth_user.user_id,
-        &yolo_result.image_path,
+        &yolo_result.image_path, // 儲存畫好框的圖片路徑
         items_jsonb
     )
     .execute(&state.db)
-    .await;
-
-    if let Err(e) = insert_result {
-        error!("存入草稿失敗: {:?}", e);
-        return Err((
+    .await
+    .map_err(|e| {
+        error!("資料庫草稿存入失敗: {:?}", e);
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: "資料庫草稿儲存失敗".into(),
+                error: "草稿存入失敗".into(),
             }),
-        ));
-    }
+        )
+    })?;
 
     let image_base64 = fs::read(&yolo_result.image_path)
         .ok()
         .map(|b| general_purpose::STANDARD.encode(b));
 
     Ok(Json(VisionResponse {
-        message: "辨識完成！請確認食材資訊。".into(),
+        message: "辨識完成，請確認食材是否有誤。".into(),
         draft_id: draft_id.to_string(),
         image_base64,
         items: extracted_items,

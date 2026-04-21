@@ -1,3 +1,4 @@
+pub mod basic_calculator;
 pub mod consult;
 pub mod diet;
 pub mod diet_image;
