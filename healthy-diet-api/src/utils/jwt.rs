@@ -10,6 +10,7 @@ use axum_extra::{
 };
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -117,5 +118,22 @@ where
             user_id,
             email: claims.email,
         })
+    }
+}
+
+impl<S> axum::extract::OptionalFromRequestParts<S> for AuthUser
+where
+    S: Send + Sync,
+{
+    type Rejection = Infallible;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        match <Self as FromRequestParts<S>>::from_request_parts(parts, state).await {
+            Ok(user) => Ok(Some(user)),
+            Err(_) => Ok(None),
+        }
     }
 }
