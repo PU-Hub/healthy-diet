@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT result_image_path, original_image_path FROM diet_records WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "result_image_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "original_image_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "a5f392ebbb8d7ae1c12663f6dce93d9324b1c7ece81a6fc17660391e379cf640"
+}

@@ -6,15 +6,16 @@ use axum::{
 };
 use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
-use std::env;
 
 #[derive(Serialize)]
 pub struct ImageResponse {
     pub message: String,
     pub image_base64: Option<String>,
+    pub original_image_base64: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -34,7 +35,6 @@ pub async fn diet_image_handler(
 
     let n8n_token = format!("Bearer {}", n8n_secret);
 
-
     let is_n8n = headers
         .get(header::AUTHORIZATION)
         .and_then(|val| val.to_str().ok())
@@ -50,9 +50,9 @@ pub async fn diet_image_handler(
         ));
     }
 
-    let result_image_path = if is_n8n {
+    let (result_image_path, original_image_path) = if is_n8n {
         sqlx::query!(
-            "SELECT result_image_path FROM diet_records WHERE id = $1",
+            "SELECT result_image_path, original_image_path FROM diet_records WHERE id = $1",
             payload.record_id
         )
         .fetch_optional(&state.db)
@@ -66,11 +66,11 @@ pub async fn diet_image_handler(
                 }),
             )
         })?
-        .map(|r| r.result_image_path)
+        .map(|r| (r.result_image_path, r.original_image_path))
     } else {
         let user = auth_user.unwrap();
         sqlx::query!(
-            "SELECT result_image_path FROM diet_records WHERE id = $1 AND user_id = $2",
+            "SELECT result_image_path, original_image_path FROM diet_records WHERE id = $1 AND user_id = $2",
             payload.record_id,
             user.user_id
         )
@@ -85,7 +85,7 @@ pub async fn diet_image_handler(
                 }),
             )
         })?
-        .map(|r| r.result_image_path)
+        .map(|r| (r.result_image_path, r.original_image_path))
     }
     .ok_or((
         StatusCode::FORBIDDEN,
@@ -123,8 +123,21 @@ pub async fn diet_image_handler(
 
     let base64_data = general_purpose::STANDARD.encode(bytes);
 
+    let mut original_base64_data = None;
+    if let Some(orig_path_str) = original_image_path {
+        let orig_path = std::path::Path::new(&orig_path_str);
+        if orig_path.exists() {
+            if let Ok(orig_bytes) = tokio::fs::read(orig_path).await {
+                original_base64_data = Some(general_purpose::STANDARD.encode(orig_bytes));
+            } else {
+                error!("讀取原圖失敗: {}", orig_path_str);
+            }
+        }
+    }
+
     Ok(Json(ImageResponse {
         message: "讀取成功".into(),
         image_base64: Some(base64_data),
+        original_image_base64: original_base64_data,
     }))
 }

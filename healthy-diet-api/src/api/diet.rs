@@ -356,9 +356,20 @@ pub async fn yolo_handler(
     }
 
     sqlx::query!(
-        r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation, result_image_path)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
-        auth_user.user_id, total_calories, stats["grain"].0, stats["grain"].1, stats["protein_meat"].0, stats["protein_meat"].1, stats["vegetable"].0, stats["vegetable"].1, ai_score, ai_comment, &yolo_result.image_path
+      r#"INSERT INTO diet_records (user_id, total_calories, grain_calories, grain_area, protein_meat_calories, protein_meat_area, vegetable_calories, vegetable_area, ai_health_score, ai_evaluation, result_image_path, original_image_path)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"#,
+              auth_user.user_id,
+              total_calories,
+              stats["grain"].0,
+              stats["grain"].1,
+              stats["protein_meat"].0,
+              stats["protein_meat"].1,
+              stats["vegetable"].0,
+              stats["vegetable"].1,
+              ai_score,
+              ai_comment,
+              &yolo_result.image_path,
+              &input_path
     )
     .execute(&state.db).await.ok();
 
