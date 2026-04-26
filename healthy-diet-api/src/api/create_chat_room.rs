@@ -1,15 +1,11 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json}; // 將 Json 加在這裡
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse}; // 將 Json 加在這裡
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
 
-use crate::{
-    api::model::ErrorResponse,
-    model::AppState,
-    utils::jwt::AuthUser,
-};
+use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
 #[derive(Deserialize)]
 pub struct CreateChatRequest {
@@ -33,8 +29,6 @@ pub async fn create_chat_room_handler(
     auth_user: AuthUser,
     Json(request): Json<CreateChatRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
-
-
     let target_room_id = request.room_id.unwrap_or_else(Uuid::new_v4);
 
     let chat_record = sqlx::query!(
@@ -57,8 +51,11 @@ pub async fn create_chat_room_handler(
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "資料庫建立紀錄失敗".into() }))
     })?;
 
-    Ok((StatusCode::CREATED, Json(json!({
-        "chat_id": chat_record.id,
-        "room_id": target_room_id
-    }))))
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({
+            "chat_id": chat_record.id,
+            "room_id": target_room_id
+        })),
+    ))
 }
