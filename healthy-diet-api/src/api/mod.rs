@@ -11,3 +11,4 @@ pub mod record;
 pub mod refresh;
 pub mod register;
 pub mod user;
+pub mod create_chat_room;

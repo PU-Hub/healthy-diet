@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
-// 記得引入 env 模組
 use std::env;
 
 #[derive(Serialize)]
@@ -23,29 +22,25 @@ pub struct ImageRequest {
     pub record_id: Uuid,
 }
 
-// 加入這個巨集！它會幫你把編譯錯誤翻譯成人類看得懂的語言
 #[axum::debug_handler]
 pub async fn diet_image_handler(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    auth_user: Option<AuthUser>, // 確保自定義提取器在 Json 前面
+    auth_user: Option<AuthUser>,
     Json(payload): Json<ImageRequest>,
 ) -> Result<Json<ImageResponse>, (StatusCode, Json<ErrorResponse>)> {
-    // 從 .env 讀取密碼，如果沒設定就使用預設值
     let n8n_secret =
         env::var("N8N_SECRET_KEY").unwrap_or_else(|_| "N8N_SUPER_SECRET_STATIC_KEY".to_string());
 
-    // 組合成完整的 Bearer Token 格式
     let n8n_token = format!("Bearer {}", n8n_secret);
 
-    // 驗證是否為 n8n 的請求
+
     let is_n8n = headers
         .get(header::AUTHORIZATION)
         .and_then(|val| val.to_str().ok())
         .map(|auth_str| auth_str == n8n_token)
         .unwrap_or(false);
 
-    // 權限判斷：既不是 n8n，也沒有合法的使用者 Token
     if !is_n8n && auth_user.is_none() {
         return Err((
             StatusCode::UNAUTHORIZED,

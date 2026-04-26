@@ -11,6 +11,7 @@ use crate::{
         refresh::refresh_handler,
         register::register_handler,
         user::{get_profile_handler, update_user_profile_handler},
+        create_chat_room::create_chat_room_handler,
     },
     discord::login::{discord_callback, login_discord},
     model::{APIRouter, AppState},
@@ -42,6 +43,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::DIET_IMAGE, post(diet_image_handler))
         .route(APIRouter::MONTH_STATS, get(weekly_stats_handler))
         .route(APIRouter::RECORD, post(record_visit_handler))
+        .route(APIRouter::CHAT_ROOM, post(create_chat_room_handler))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
