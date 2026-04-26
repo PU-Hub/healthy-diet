@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n              INSERT INTO diet_chat_history (room_id, title, user_id, diet_record_id, user_message, sender_role)\n              VALUES ($1, $2, $3, $4, $5, $6)\n              RETURNING id\n              ",
+  "query": "\n        INSERT INTO diet_chat_history (room_id, title, user_id, diet_record_id, user_message)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id\n        ",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,6 @@
         "Text",
         "Uuid",
         "Uuid",
-        "Text",
         "Text"
       ]
     },
@@ -23,5 +22,5 @@
       false
     ]
   },
-  "hash": "0dde9aeda480f7ef7c29487d856f9638a03dc7d641a7c108420503a1d173f3e0"
+  "hash": "48a1b592c416205c7f32cf99a502254d9b3cd7974976d183c82837e7d297e039"
 }
