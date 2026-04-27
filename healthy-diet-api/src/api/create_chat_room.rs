@@ -95,7 +95,7 @@ pub async fn create_chat_room_handler(
     Ok((
         StatusCode::OK,
         Json(json!({
-            "chat_id": chat_record.id,
+            "chat_id": chat_record.id,chat_id
             "room_id": target_room_id,
             "title": final_title
         })),
