@@ -9,7 +9,6 @@ use serde::Serialize;
 use serde_json::json;
 use std::sync::Arc;
 use tracing::error;
-use uuid::Uuid;
 
 use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
@@ -32,9 +31,8 @@ pub async fn get_chat_rooms_handler(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let rooms = sqlx::query!(
         r#"
-        SELECT 
-            room_id, 
-            MAX(title) as title, 
+        SELECT
+            room_id,
             MAX(created_at) as last_updated
         FROM diet_chat_history
         WHERE user_id = $1
@@ -57,10 +55,16 @@ pub async fn get_chat_rooms_handler(
 
     let room_responses: Vec<RoomResponse> = rooms
         .into_iter()
-        .map(|r| RoomResponse {
-            id: r.room_id.unwrap_or_default().to_string(),
-            title: r.title.unwrap_or_else(|| "新對話".to_string()),
-            last_updated: r.last_updated,
+        .map(|r| {
+            let room_id_str = r.room_id;
+
+            let short_id: String = room_id_str.chars().take(6).collect();
+
+            RoomResponse {
+                id: room_id_str,
+                title: format!("諮詢室 #{}", short_id),
+                last_updated: r.last_updated,
+            }
         })
         .collect();
 
@@ -70,7 +74,7 @@ pub async fn get_chat_rooms_handler(
 pub async fn get_room_history_handler(
     State(state): State<Arc<AppState>>,
     auth_user: AuthUser,
-    Path(room_id): Path<Uuid>,
+    Path(room_id): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let records = sqlx::query!(
         r#"

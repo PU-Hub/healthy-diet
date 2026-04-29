@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            room_id,\n            MAX(created_at) as last_updated\n        FROM diet_chat_history\n        WHERE user_id = $1\n        GROUP BY room_id\n        ORDER BY last_updated DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "room_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "last_updated",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "60b6a69be47c612b27e0f7f12e50e8bfec53aa7d3eb1f53ec81a1382d8cbc065"
+}
