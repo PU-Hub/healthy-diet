@@ -1,4 +1,6 @@
+pub mod agent_approve;
 pub mod basic_calculator;
+pub mod chat_room;
 pub mod consult;
 pub mod diet;
 pub mod diet_image;
@@ -11,4 +13,3 @@ pub mod record;
 pub mod refresh;
 pub mod register;
 pub mod user;
-pub mod create_chat_room;

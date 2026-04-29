@@ -24,7 +24,8 @@ impl APIRouter {
     pub const DIET_IMAGE: &'static str = "/diet_image";
     pub const RECORD: &'static str = "/record";
     pub const MONTH_STATS: &'static str = "/month_stats";
-    pub const CHAT_ROOM: &'static str = "/create_chat_room";
+    pub const CHAT_ROOM: &'static str = "/chat_room";
+    pub const AGENT_APPROVE: &'static str = "/agent_approve";
 }
 
 pub struct ENVKey;
@@ -35,6 +36,7 @@ impl ENVKey {
     pub const DATABASE_URL_2: &'static str = "DATABASE_URL_2";
     pub const GEMINI_API_KEY: &'static str = "GEMINI_API_KEY";
     pub const JWT_SECRET: &'static str = "JWT_SECRET";
+    pub const AGENT_API_URL: &'static str = "AGENT_API_URL";
 }
 
 pub struct OutSideURL;
