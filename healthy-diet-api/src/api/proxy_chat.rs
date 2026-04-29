@@ -17,6 +17,8 @@ use crate::{api::model::ErrorResponse, model::ENVKey, utils::jwt::AuthUser};
 pub struct AgentChatRequest {
     pub message: String,
     pub room_id: Option<Uuid>,
+    pub user_context: Option<serde_json::Value>,
+    pub image: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -24,6 +26,8 @@ struct NodeAgentPayload {
     pub message: String,
     pub thread_id: String,
     pub user_id: String,
+    pub user_context: Option<serde_json::Value>,
+    pub image: Option<String>,
 }
 
 pub async fn proxy_agent_chat_handler(
@@ -41,10 +45,12 @@ pub async fn proxy_agent_chat_handler(
         message: request.message,
         thread_id: target_room_id.to_string(),
         user_id: auth_user.user_id.to_string(),
+        user_context: request.user_context,
+        image: request.image,
     };
 
     let node_api_url = format!(
-        "{}/approve",
+        "{}",
         env::var(ENVKey::AGENT_API_URL).map_err(|e| {
             error!("cannot get env value {:?}", e);
             (

@@ -4,9 +4,11 @@ use axum::{Json, extract::State, http::StatusCode};
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
+use std::env;
 use std::sync::Arc;
 use tracing::error;
 
+use crate::model::{APIRouter, ENVKey};
 use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
 #[derive(Deserialize)]
@@ -27,7 +29,9 @@ pub async fn generate_room_title_handler(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     // 1. 發送請求給 Node.js 討標題
     let client = Client::new();
-    let node_api_url = "http://127.0.0.1:8001/api/generate_title";
+    let agent_api_url = env::var(ENVKey::AGENT_API_URL).expect("[generate title]Miss env");
+
+    let node_api_url = agent_api_url.replace("/chat", "/generate_title");
 
     let res = client
         .post(node_api_url)
