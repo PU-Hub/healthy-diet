@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE diet_chat_history \n        SET title = $1 \n        WHERE room_id = $2 AND user_id = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e238c4609e5d8e69181fdbfa4027fee078c6cba7e09ce711937e9e1798dd7244"
+}
