@@ -28,6 +28,7 @@ impl APIRouter {
     pub const AGENT_APPROVE: &'static str = "/agent_approve";
     pub const CHAT_ROOM: &'static str = "/chat_rooms";
     pub const ROOM_HOSTROY: &'static str = "/room_history";
+    pub const ROOM_TITLE: &'static str = "/room_title/:room_id";
 }
 
 pub struct ENVKey;
