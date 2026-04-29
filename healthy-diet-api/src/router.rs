@@ -1,7 +1,7 @@
 use crate::{
     api::{
         agent_approve::approve_agent,
-        chat_room::proxy_agent_chat_handler,
+        chat_room::{get_chat_rooms_handler, get_room_history_handler},
         consult::consult_handler,
         diet::yolo_handler,
         diet_image::diet_image_handler,
@@ -9,6 +9,7 @@ use crate::{
         health::healthy_server_handler,
         login::login_handler,
         ping::ping_handler,
+        proxy_chat::proxy_agent_chat_handler,
         record::{record_visit_handler, weekly_stats_handler},
         refresh::refresh_handler,
         register::register_handler,
@@ -45,8 +46,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::DIET_IMAGE, post(diet_image_handler))
         .route(APIRouter::MONTH_STATS, get(weekly_stats_handler))
         .route(APIRouter::RECORD, post(record_visit_handler))
-        .route(APIRouter::CHAT_ROOM, post(proxy_agent_chat_handler))
+        .route(APIRouter::PROXY_CHAT, post(proxy_agent_chat_handler))
         .route(APIRouter::AGENT_APPROVE, post(approve_agent))
+        .route(APIRouter::CHAT_ROOM, post(get_chat_rooms_handler))
+        .route(APIRouter::ROOM_HOSTROY, post(get_room_history_handler))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(TraceLayer::new_for_http())
         .with_state(state)

@@ -1,86 +1,116 @@
 use axum::{
-    extract::Json,
+    Json,
+    extract::{Path, State},
     http::StatusCode,
-    response::sse::{Event, Sse},
+    response::IntoResponse,
 };
-use futures::stream::StreamExt;
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use std::{convert::Infallible, time::Duration};
+use chrono::{DateTime, Utc};
+use serde::Serialize;
+use serde_json::json;
+use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
 
-use crate::{api::model::ErrorResponse, utils::jwt::AuthUser};
+use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
-#[derive(Deserialize)]
-pub struct AgentChatRequest {
-    pub message: String,
-    pub room_id: Option<Uuid>,
+#[derive(Serialize)]
+pub struct RoomResponse {
+    pub id: String,
+    pub title: String,
+    pub last_updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize)]
-struct NodeAgentPayload {
-    pub message: String,
-    pub thread_id: String,
-    pub user_id: String,
+pub struct ChatMessage {
+    pub role: String,
+    pub content: String,
 }
 
-pub async fn proxy_agent_chat_handler(
+pub async fn get_chat_rooms_handler(
+    State(state): State<Arc<AppState>>,
     auth_user: AuthUser,
-    Json(request): Json<AgentChatRequest>,
-) -> Result<
-    Sse<impl futures::stream::Stream<Item = Result<Event, Infallible>>>,
-    (StatusCode, Json<ErrorResponse>),
-> {
-    let client = Client::new();
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
+    let rooms = sqlx::query!(
+        r#"
+        SELECT 
+            room_id, 
+            MAX(title) as title, 
+            MAX(created_at) as last_updated
+        FROM diet_chat_history
+        WHERE user_id = $1
+        GROUP BY room_id
+        ORDER BY last_updated DESC
+        "#,
+        auth_user.user_id
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        error!("查詢聊天室列表失敗: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "資料庫查詢失敗".into(),
+            }),
+        )
+    })?;
 
-    let target_room_id = request.room_id.unwrap_or_else(Uuid::new_v4);
+    let room_responses: Vec<RoomResponse> = rooms
+        .into_iter()
+        .map(|r| RoomResponse {
+            id: r.room_id.unwrap_or_default().to_string(),
+            title: r.title.unwrap_or_else(|| "新對話".to_string()),
+            last_updated: r.last_updated,
+        })
+        .collect();
 
-    let payload = NodeAgentPayload {
-        message: request.message,
-        thread_id: target_room_id.to_string(),
-        user_id: auth_user.user_id.to_string(),
-    };
+    Ok((StatusCode::OK, Json(json!({ "rooms": room_responses }))))
+}
 
-    let node_api_url = "http://127.0.0.1:8001/api/chat";
+pub async fn get_room_history_handler(
+    State(state): State<Arc<AppState>>,
+    auth_user: AuthUser,
+    Path(room_id): Path<Uuid>,
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
+    let records = sqlx::query!(
+        r#"
+        SELECT user_message, ai_analysis_report
+        FROM diet_chat_history
+        WHERE room_id = $1 AND user_id = $2
+        ORDER BY created_at ASC
+        "#,
+        room_id,
+        auth_user.user_id
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        error!("查詢歷史紀錄失敗: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "資料庫查詢失敗".into(),
+            }),
+        )
+    })?;
 
-    let res = client
-        .post(node_api_url)
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|e| {
-            error!("無法連線到 Node.js Agent: {:?}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "AI 伺服器連線失敗，請稍後再試".into(),
-                }),
-            )
-        })?;
+    let mut history: Vec<ChatMessage> = Vec::new();
 
-    let stream = res.bytes_stream().map(|chunk| match chunk {
-        Ok(bytes) => {
-            let text = String::from_utf8_lossy(&bytes).to_string();
-
-            let clean_json = text.replace("data: ", "").trim().to_string();
-
-            if !clean_json.is_empty() {
-                Ok(Event::default().data(clean_json))
-            } else {
-                Ok(Event::default().data(""))
-            }
+    for record in records {
+        if let Some(msg) = record.user_message {
+            history.push(ChatMessage {
+                role: "user".to_string(),
+                content: msg,
+            });
         }
-        Err(e) => {
-            error!("讀取 Stream 發生錯誤: {:?}", e);
-            Ok(Event::default().data(r#"{"type":"error","content":"Stream 中斷"}"#))
-        }
-    });
 
-    // 回傳 Sse 結構，並設定 15 秒的心跳包 (Keep-Alive) 避免連線中斷
-    Ok(Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new()
-            .interval(Duration::from_secs(15))
-            .text("keep-alive-text"),
-    ))
+        if let Some(ai_msg) = record.ai_analysis_report {
+            history.push(ChatMessage {
+                role: "ai".to_string(),
+                content: ai_msg,
+            });
+        }
+    }
+
+    Ok((StatusCode::OK, Json(json!({ "history": history }))))
 }
