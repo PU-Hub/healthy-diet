@@ -8,7 +8,7 @@ use std::env;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::model::{APIRouter, ENVKey};
+use crate::model::ENVKey;
 use crate::{api::model::ErrorResponse, model::AppState, utils::jwt::AuthUser};
 
 #[derive(Deserialize)]
@@ -63,8 +63,8 @@ pub async fn generate_room_title_handler(
     // 3. 將新標題更新到資料庫中該 room_id 的所有紀錄
     sqlx::query!(
         r#"
-        UPDATE diet_chat_history 
-        SET title = $1 
+        UPDATE diet_chat_history
+        SET title = $1
         WHERE room_id = $2 AND user_id = $3
         "#,
         new_title,
