@@ -31,13 +31,13 @@ pub async fn get_chat_rooms_handler(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let rooms = sqlx::query!(
         r#"
-        SELECT
+        SELECT DISTINCT ON (room_id)
             room_id,
-            MAX(created_at) as last_updated
+            user_message as title,
+            created_at as last_updated
         FROM diet_chat_history
         WHERE user_id = $1
-        GROUP BY room_id
-        ORDER BY last_updated DESC
+        ORDER BY room_id, created_at ASC
         "#,
         auth_user.user_id
     )
@@ -53,20 +53,29 @@ pub async fn get_chat_rooms_handler(
         )
     })?;
 
-    let room_responses: Vec<RoomResponse> = rooms
+    let mut room_responses: Vec<RoomResponse> = rooms
         .into_iter()
         .map(|r| {
-            let room_id_str = r.room_id;
-
-            let short_id: String = room_id_str.chars().take(6).collect();
+            let display_title = r
+                .title
+                .map(|t| {
+                    if t.chars().count() > 20 {
+                        format!("{}...", t.chars().take(20).collect::<String>())
+                    } else {
+                        t
+                    }
+                })
+                .unwrap_or_else(|| "新對話".to_string());
 
             RoomResponse {
-                id: room_id_str,
-                title: format!("諮詢室 #{}", short_id),
+                id: r.room_id,
+                title: display_title,
                 last_updated: r.last_updated,
             }
         })
         .collect();
+
+    room_responses.sort_by(|a, b| b.last_updated.cmp(&a.last_updated));
 
     Ok((StatusCode::OK, Json(json!({ "rooms": room_responses }))))
 }
