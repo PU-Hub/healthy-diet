@@ -30,8 +30,17 @@ pub async fn generate_room_title_handler(
     // 1. 發送請求給 Node.js 討標題
     let client = Client::new();
     let agent_api_url = env::var(ENVKey::AGENT_API_URL).expect("[generate title]Miss env");
-
-    let node_api_url = agent_api_url.replace("/chat", "/generate_title");
+    let normalized_url = agent_api_url.trim_end_matches('/');
+    let node_api_url = if normalized_url.ends_with("/api/chat") {
+        format!(
+            "{}/generate_title",
+            normalized_url.trim_end_matches("/api/chat")
+        )
+    } else if normalized_url.ends_with("/chat") {
+        format!("{}/generate_title", normalized_url.trim_end_matches("/chat"))
+    } else {
+        format!("{normalized_url}/generate_title")
+    };
 
     let res = client
         .post(node_api_url)
