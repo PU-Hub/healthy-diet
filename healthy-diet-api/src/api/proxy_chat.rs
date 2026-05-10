@@ -33,6 +33,7 @@ pub struct AgentChatRequest {
 struct NodeAgentPayload {
     pub message: String,
     pub thread_id: String,
+    pub chat_history_id: String,
     pub user_id: String,
     pub user_context: Option<serde_json::Value>,
     pub image: Option<String>,
@@ -124,7 +125,7 @@ pub async fn proxy_agent_chat_handler(
                 )
             })?;
 
-    persist_user_chat_record(
+    let chat_history_id = persist_user_chat_record(
         &state,
         auth_user.user_id,
         target_room_id,
@@ -152,6 +153,7 @@ pub async fn proxy_agent_chat_handler(
     let payload = NodeAgentPayload {
         message: request.message,
         thread_id: target_room_id.to_string(),
+        chat_history_id: chat_history_id.to_string(),
         user_id: auth_user.user_id.to_string(),
         user_context: request.user_context,
         image: request.image,
@@ -211,14 +213,16 @@ async fn persist_user_chat_record(
     room_id: Uuid,
     user_message: &str,
     image_path: Option<&str>,
-) -> Result<(), sqlx::Error> {
+) -> Result<Uuid, sqlx::Error> {
+    let history_id = Uuid::new_v4();
+
     sqlx::query(
         r#"
         INSERT INTO diet_chat_history (id, room_id, user_id, user_message, image_path, created_at)
         VALUES ($1, $2, $3, $4, $5, NOW())
         "#,
     )
-    .bind(Uuid::new_v4())
+    .bind(history_id)
     .bind(room_id.to_string())
     .bind(user_id)
     .bind(user_message)
@@ -226,7 +230,7 @@ async fn persist_user_chat_record(
     .execute(&state.db)
     .await?;
 
-    Ok(())
+    Ok(history_id)
 }
 
 async fn upsert_chat_room_meta(
