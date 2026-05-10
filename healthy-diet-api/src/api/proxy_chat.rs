@@ -11,7 +11,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{convert::Infallible, time::Duration};
-use tokio::{fs, time::sleep};
+use tokio::fs;
 use tracing::error;
 use uuid::Uuid;
 
@@ -110,6 +110,7 @@ pub async fn proxy_agent_chat_handler(
     let target_room_id = request.room_id.unwrap_or_else(Uuid::new_v4);
     let original_message = request.message.clone();
     let original_image = request.image.clone();
+
     let saved_image_path =
         save_chat_image_if_needed(&auth_user.user_id, &target_room_id, original_image)
             .await
@@ -123,6 +124,31 @@ pub async fn proxy_agent_chat_handler(
                 )
             })?;
 
+    persist_user_chat_record(
+        &state,
+        auth_user.user_id,
+        target_room_id,
+        &original_message,
+        saved_image_path.as_deref(),
+    )
+    .await
+    .map_err(|e| {
+        error!("insert diet_chat_history failed: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "Cannot save chat history".to_string(),
+            }),
+        )
+    })?;
+
+    if let Err(e) =
+        upsert_chat_room_meta(&state, auth_user.user_id, target_room_id, &original_message).await
+    {
+        // Do not fail the chat request if room metadata table has not been migrated yet.
+        error!("upsert chat_rooms failed: {:?}", e);
+    }
+
     let payload = NodeAgentPayload {
         message: request.message,
         thread_id: target_room_id.to_string(),
@@ -131,18 +157,15 @@ pub async fn proxy_agent_chat_handler(
         image: request.image,
     };
 
-    let node_api_url = format!(
-        "{}",
-        env::var(ENVKey::AGENT_API_URL).map_err(|e| {
-            error!("cannot get env value {:?}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "Server error".to_string(),
-                }),
-            )
-        })?
-    );
+    let node_api_url = env::var(ENVKey::AGENT_API_URL).map_err(|e| {
+        error!("cannot get env value {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "Server error".to_string(),
+            }),
+        )
+    })?;
 
     let res = client
         .post(node_api_url)
@@ -150,83 +173,91 @@ pub async fn proxy_agent_chat_handler(
         .send()
         .await
         .map_err(|e| {
-            error!("無法連線到 Node.js Agent: {:?}", e);
+            error!("forward to Node.js Agent failed: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: "AI 伺服器連線失敗，請稍後再試".into(),
+                    error: "AI request failed".into(),
                 }),
             )
         })?;
 
-    if let Some(image_path) = saved_image_path {
-        let db = state.db.clone();
-        let user_id = auth_user.user_id;
-        let room_id = target_room_id.to_string();
-        tokio::spawn(async move {
-            let mut retries = 0u8;
-            while retries < 20 {
-                let update_result = sqlx::query(
-                    r#"
-                    UPDATE diet_chat_history
-                    SET image_path = $1
-                    WHERE ctid IN (
-                        SELECT ctid
-                        FROM diet_chat_history
-                        WHERE room_id = $2
-                          AND user_id = $3
-                          AND user_message = $4
-                        ORDER BY created_at DESC
-                        LIMIT 1
-                    )
-                    "#,
-                )
-                .bind(&image_path)
-                .bind(&room_id)
-                .bind(user_id)
-                .bind(&original_message)
-                .execute(&db)
-                .await;
-
-                match update_result {
-                    Ok(result) if result.rows_affected() > 0 => return,
-                    Ok(_) => {
-                        retries += 1;
-                        sleep(Duration::from_millis(500)).await;
-                    }
-                    Err(e) => {
-                        error!("update diet_chat_history image_path failed: {:?}", e);
-                        return;
-                    }
-                }
-            }
-        });
-    }
-
     let stream = res.bytes_stream().map(|chunk| match chunk {
         Ok(bytes) => {
             let text = String::from_utf8_lossy(&bytes).to_string();
-
             let clean_json = text.replace("data: ", "").trim().to_string();
-
-            if !clean_json.is_empty() {
-                Ok(Event::default().data(clean_json))
-            } else {
+            if clean_json.is_empty() {
                 Ok(Event::default().data(""))
+            } else {
+                Ok(Event::default().data(clean_json))
             }
         }
         Err(e) => {
-            error!("讀取 Stream 發生錯誤: {:?}", e);
-            Ok(Event::default().data(r#"{"type":"error","content":"Stream 中斷"}"#))
+            error!("stream read failed: {:?}", e);
+            Ok(Event::default().data(r#"{"type":"error","content":"Stream read failed"}"#))
         }
     });
 
-    // 回傳 Sse 結構，並設定 15 秒的心跳包 (Keep-Alive) 避免連線中斷
     Ok(Sse::new(stream).keep_alive(
         axum::response::sse::KeepAlive::new()
             .interval(Duration::from_secs(15))
             .text("keep-alive-text"),
     ))
+}
+
+async fn persist_user_chat_record(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    room_id: Uuid,
+    user_message: &str,
+    image_path: Option<&str>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO diet_chat_history (id, room_id, user_id, user_message, image_path, created_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(room_id.to_string())
+    .bind(user_id)
+    .bind(user_message)
+    .bind(image_path)
+    .execute(&state.db)
+    .await?;
+
+    Ok(())
+}
+
+async fn upsert_chat_room_meta(
+    state: &Arc<AppState>,
+    user_id: Uuid,
+    room_id: Uuid,
+    message: &str,
+) -> Result<(), sqlx::Error> {
+    let title_seed = if message.chars().count() > 40 {
+        format!("{}...", message.chars().take(40).collect::<String>())
+    } else {
+        message.to_string()
+    };
+
+    sqlx::query(
+        r#"
+        INSERT INTO chat_rooms (room_id, user_id, title, summary, created_at, updated_at, last_message_at)
+        VALUES ($1, $2, $3, '[]'::jsonb, NOW(), NOW(), NOW())
+        ON CONFLICT (room_id, user_id)
+        DO UPDATE SET
+            updated_at = NOW(),
+            last_message_at = NOW()
+        "#,
+    )
+    .bind(room_id.to_string())
+    .bind(user_id)
+    .bind(title_seed)
+    .execute(&state.db)
+    .await?;
+
+    Ok(())
 }
 
 fn guess_ext_from_data_url(header: &str) -> &'static str {

@@ -1,7 +1,9 @@
 use crate::{
     api::{
         agent_approve::approve_agent,
-        chat_room::{get_chat_rooms_handler, get_room_history_handler},
+        chat_room::{
+            get_chat_room_titles_handler, get_chat_rooms_handler, get_room_history_handler,
+        },
         consult::consult_handler,
         diet::yolo_handler,
         diet_image::diet_image_handler,
@@ -51,6 +53,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::PROXY_CHAT_CHECK, get(proxy_chat_check_handler))
         .route(APIRouter::AGENT_APPROVE, post(approve_agent))
         .route(APIRouter::CHAT_ROOM, get(get_chat_rooms_handler))
+        .route(
+            APIRouter::CHAT_ROOM_TITLES,
+            get(get_chat_room_titles_handler),
+        )
         .route(APIRouter::ROOM_HOSTROY, get(get_room_history_handler))
         .route(APIRouter::ROOM_TITLE, put(generate_room_title_handler))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))

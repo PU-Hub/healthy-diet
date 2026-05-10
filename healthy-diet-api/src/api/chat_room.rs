@@ -32,6 +32,15 @@ pub struct ChatMessage {
     pub image_base64: Option<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatRoomTitleItem {
+    pub room_id: String,
+    pub title: String,
+    pub summary: serde_json::Value,
+    pub last_message_at: Option<DateTime<Utc>>,
+}
+
 pub async fn get_chat_rooms_handler(
     State(state): State<Arc<AppState>>,
     auth_user: AuthUser,
@@ -85,6 +94,49 @@ pub async fn get_chat_rooms_handler(
     room_responses.sort_by(|a, b| b.last_updated.cmp(&a.last_updated));
 
     Ok((StatusCode::OK, Json(json!({ "rooms": room_responses }))))
+}
+
+pub async fn get_chat_room_titles_handler(
+    State(state): State<Arc<AppState>>,
+    auth_user: AuthUser,
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
+    let rows = sqlx::query(
+        r#"
+        SELECT room_id, title, summary, last_message_at
+        FROM chat_rooms
+        WHERE user_id = $1
+        ORDER BY last_message_at DESC NULLS LAST, created_at DESC
+        "#,
+    )
+    .bind(auth_user.user_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        error!("failed to get chat room titles: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "Failed to fetch chat room titles".into(),
+            }),
+        )
+    })?;
+
+    let rooms: Vec<ChatRoomTitleItem> = rows
+        .into_iter()
+        .map(|row| ChatRoomTitleItem {
+            room_id: row.try_get::<String, _>("room_id").unwrap_or_default(),
+            title: row.try_get::<String, _>("title").unwrap_or_default(),
+            summary: row
+                .try_get::<serde_json::Value, _>("summary")
+                .unwrap_or_else(|_| json!([])),
+            last_message_at: row
+                .try_get::<Option<DateTime<Utc>>, _>("last_message_at")
+                .ok()
+                .flatten(),
+        })
+        .collect();
+
+    Ok((StatusCode::OK, Json(json!({ "rooms": rooms }))))
 }
 
 pub async fn get_room_history_handler(

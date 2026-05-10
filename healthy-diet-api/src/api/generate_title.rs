@@ -27,10 +27,11 @@ pub async fn generate_room_title_handler(
     Path(room_id): Path<String>,
     Json(payload): Json<GenerateTitleRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
-    // 1. 發送請求給 Node.js 討標題
     let client = Client::new();
-    let agent_api_url = env::var(ENVKey::AGENT_API_URL).expect("[generate title]Miss env");
+    let agent_api_url =
+        env::var(ENVKey::AGENT_API_URL).expect("[generate title] Missing AGENT_API_URL");
     let normalized_url = agent_api_url.trim_end_matches('/');
+
     let node_api_url = if normalized_url.ends_with("/api/chat") {
         format!(
             "{}/generate_title",
@@ -51,50 +52,64 @@ pub async fn generate_room_title_handler(
         .send()
         .await
         .map_err(|e| {
-            error!("請求 Node.js 生成標題失敗: {:?}", e);
+            error!("call Node.js generate_title failed: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: "標題生成服務異常".into(),
+                    error: "Generate title request failed".into(),
                 }),
             )
         })?;
 
-    // 2. 解析 Node.js 回傳的標題
-    let node_data: NodeTitleResponse = res.json().await.map_err(|_| {
+    let node_data: NodeTitleResponse = res.json().await.map_err(|e| {
+        error!("parse generate_title response failed: {:?}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: "解析標題失敗".into(),
+                error: "Invalid generate title response".into(),
             }),
         )
     })?;
 
     let new_title = node_data.title;
 
-    // 3. 將新標題更新到資料庫中該 room_id 的所有紀錄
-    sqlx::query!(
+    sqlx::query(
         r#"
         UPDATE diet_chat_history
         SET title = $1
         WHERE room_id = $2 AND user_id = $3
         "#,
-        new_title,
-        room_id,
-        auth_user.user_id
     )
+    .bind(&new_title)
+    .bind(&room_id)
+    .bind(auth_user.user_id)
     .execute(&state.db)
     .await
     .map_err(|e| {
-        error!("更新標題至資料庫失敗: {:?}", e);
+        error!("update diet_chat_history title failed: {:?}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
-                error: "資料庫更新失敗".into(),
+                error: "Failed to update title".into(),
             }),
         )
     })?;
 
-    // 4. 回傳新標題給前端更新畫面
+    if let Err(e) = sqlx::query(
+        r#"
+        UPDATE chat_rooms
+        SET title = $1, updated_at = NOW()
+        WHERE room_id = $2 AND user_id = $3
+        "#,
+    )
+    .bind(&new_title)
+    .bind(&room_id)
+    .bind(auth_user.user_id)
+    .execute(&state.db)
+    .await
+    {
+        error!("update chat_rooms title failed: {:?}", e);
+    }
+
     Ok((StatusCode::OK, Json(json!({ "title": new_title }))))
 }

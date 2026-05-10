@@ -28,6 +28,7 @@ impl APIRouter {
     pub const PROXY_CHAT_CHECK: &'static str = "/proxy_chat_check";
     pub const AGENT_APPROVE: &'static str = "/agent_approve";
     pub const CHAT_ROOM: &'static str = "/chat_rooms";
+    pub const CHAT_ROOM_TITLES: &'static str = "/chat_room_titles";
     pub const ROOM_HOSTROY: &'static str = "/room_history/{room_id}";
     pub const ROOM_TITLE: &'static str = "/room_title/{room_id}";
 }
