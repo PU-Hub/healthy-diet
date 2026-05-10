@@ -37,7 +37,10 @@ pub async fn generate_room_title_handler(
             normalized_url.trim_end_matches("/api/chat")
         )
     } else if normalized_url.ends_with("/chat") {
-        format!("{}/generate_title", normalized_url.trim_end_matches("/chat"))
+        format!(
+            "{}/generate_title",
+            normalized_url.trim_end_matches("/chat")
+        )
     } else {
         format!("{normalized_url}/generate_title")
     };

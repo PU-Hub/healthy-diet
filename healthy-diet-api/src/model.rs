@@ -25,6 +25,7 @@ impl APIRouter {
     pub const RECORD: &'static str = "/record";
     pub const MONTH_STATS: &'static str = "/month_stats";
     pub const PROXY_CHAT: &'static str = "/proxy_chat";
+    pub const PROXY_CHAT_CHECK: &'static str = "/proxy_chat_check";
     pub const AGENT_APPROVE: &'static str = "/agent_approve";
     pub const CHAT_ROOM: &'static str = "/chat_rooms";
     pub const ROOM_HOSTROY: &'static str = "/room_history/{room_id}";
@@ -40,6 +41,7 @@ impl ENVKey {
     pub const GEMINI_API_KEY: &'static str = "GEMINI_API_KEY";
     pub const JWT_SECRET: &'static str = "JWT_SECRET";
     pub const AGENT_API_URL: &'static str = "AGENT_API_URL";
+    pub const CHAT_IMAGE_UPLOAD_DIR: &'static str = "CHAT_IMAGE_UPLOAD_DIR";
 }
 
 pub struct OutSideURL;

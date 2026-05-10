@@ -10,7 +10,7 @@ use crate::{
         health::healthy_server_handler,
         login::login_handler,
         ping::ping_handler,
-        proxy_chat::proxy_agent_chat_handler,
+        proxy_chat::{proxy_agent_chat_handler, proxy_chat_check_handler},
         record::{record_visit_handler, weekly_stats_handler},
         refresh::refresh_handler,
         register::register_handler,
@@ -48,6 +48,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::MONTH_STATS, get(weekly_stats_handler))
         .route(APIRouter::RECORD, post(record_visit_handler))
         .route(APIRouter::PROXY_CHAT, post(proxy_agent_chat_handler))
+        .route(APIRouter::PROXY_CHAT_CHECK, get(proxy_chat_check_handler))
         .route(APIRouter::AGENT_APPROVE, post(approve_agent))
         .route(APIRouter::CHAT_ROOM, get(get_chat_rooms_handler))
         .route(APIRouter::ROOM_HOSTROY, get(get_room_history_handler))
