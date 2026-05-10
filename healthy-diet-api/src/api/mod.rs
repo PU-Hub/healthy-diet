@@ -5,7 +5,6 @@ pub mod consult;
 pub mod diet;
 pub mod diet_image;
 pub mod diet_record;
-pub mod generate_title;
 pub mod health;
 pub mod login;
 pub mod model;

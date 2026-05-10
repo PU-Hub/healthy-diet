@@ -9,7 +9,6 @@ use crate::{
         diet::yolo_handler,
         diet_image::diet_image_handler,
         diet_record::diet_records_handler,
-        generate_title::generate_room_title_handler,
         health::healthy_server_handler,
         login::login_handler,
         ping::ping_handler,
@@ -25,7 +24,7 @@ use crate::{
 use axum::{
     Router,
     extract::DefaultBodyLimit,
-    routing::{get, post, put},
+    routing::{get, post},
 };
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -63,7 +62,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             APIRouter::ROOM_HISTORY_BY_INDEX,
             get(get_room_history_by_index_handler),
         )
-        .route(APIRouter::ROOM_TITLE, put(generate_room_title_handler))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
