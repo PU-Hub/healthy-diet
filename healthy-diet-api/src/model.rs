@@ -30,6 +30,7 @@ impl APIRouter {
     pub const CHAT_ROOM: &'static str = "/chat_rooms";
     pub const CHAT_ROOM_TITLES: &'static str = "/chat_room_titles";
     pub const ROOM_HOSTROY: &'static str = "/room_history/{room_id}";
+    pub const ROOM_HISTORY_BY_INDEX: &'static str = "/room_history/{room_id}/index/{index}";
     pub const ROOM_TITLE: &'static str = "/room_title/{room_id}";
 }
 

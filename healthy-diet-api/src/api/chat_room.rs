@@ -41,6 +41,24 @@ pub struct ChatRoomTitleItem {
     pub last_message_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoomHistoryDetailResponse {
+    pub id: String,
+    pub room_id: String,
+    pub user_id: String,
+    pub index: i64,
+    pub user_message: Option<String>,
+    pub image_path: Option<String>,
+    pub image_base64: Option<String>,
+    pub ai_analysis_report: Option<String>,
+    pub diet_report: Option<serde_json::Value>,
+    pub title: Option<String>,
+    pub summary: Option<String>,
+    pub summary_updated_at: Option<DateTime<Utc>>,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
 pub async fn get_chat_rooms_handler(
     State(state): State<Arc<AppState>>,
     auth_user: AuthUser,
@@ -195,6 +213,90 @@ pub async fn get_room_history_handler(
     }
 
     Ok((StatusCode::OK, Json(json!({ "history": history }))))
+}
+
+pub async fn get_room_history_by_index_handler(
+    State(state): State<Arc<AppState>>,
+    auth_user: AuthUser,
+    Path((room_id, index)): Path<(String, i64)>,
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
+    if index < 0 {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "index must be >= 0".into(),
+            }),
+        ));
+    }
+
+    let record = sqlx::query(
+        r#"
+        SELECT
+            id,
+            room_id,
+            user_id,
+            user_message,
+            image_path,
+            ai_analysis_report,
+            diet_report,
+            title,
+            summary,
+            summary_updated_at,
+            created_at
+        FROM diet_chat_history
+        WHERE room_id = $1 AND user_id = $2
+        ORDER BY created_at ASC
+        OFFSET $3
+        LIMIT 1
+        "#,
+    )
+    .bind(&room_id)
+    .bind(auth_user.user_id)
+    .bind(index)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        error!("failed to get room history by index: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "Failed to fetch room history detail".into(),
+            }),
+        )
+    })?
+    .ok_or((
+        StatusCode::NOT_FOUND,
+        Json(ErrorResponse {
+            error: "History index out of range".into(),
+        }),
+    ))?;
+
+    let image_path: Option<String> = record.try_get("image_path").ok().flatten();
+    let image_base64 = load_image_base64(image_path.as_deref()).await;
+
+    let detail = RoomHistoryDetailResponse {
+        id: record
+            .try_get::<uuid::Uuid, _>("id")
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
+        room_id: record.try_get::<String, _>("room_id").unwrap_or_default(),
+        user_id: record
+            .try_get::<uuid::Uuid, _>("user_id")
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
+        index,
+        user_message: record.try_get("user_message").ok().flatten(),
+        image_path,
+        image_base64,
+        ai_analysis_report: record.try_get("ai_analysis_report").ok().flatten(),
+        diet_report: record.try_get("diet_report").ok().flatten(),
+        title: record.try_get("title").ok().flatten(),
+        summary: record.try_get("summary").ok().flatten(),
+        summary_updated_at: record.try_get("summary_updated_at").ok().flatten(),
+        created_at: record.try_get("created_at").ok().flatten(),
+    };
+
+    Ok((StatusCode::OK, Json(json!({ "detail": detail }))))
 }
 
 fn guess_mime_from_path(path: &str) -> &'static str {

@@ -34,6 +34,7 @@ struct NodeAgentPayload {
     pub message: String,
     pub thread_id: String,
     pub chat_history_id: String,
+    pub is_new_conversation: bool,
     pub user_id: String,
     pub user_context: Option<serde_json::Value>,
     pub image: Option<String>,
@@ -108,6 +109,7 @@ pub async fn proxy_agent_chat_handler(
 > {
     let client = Client::new();
 
+    let is_new_conversation = request.room_id.is_none();
     let target_room_id = request.room_id.unwrap_or_else(Uuid::new_v4);
     let original_message = request.message.clone();
     let original_image = request.image.clone();
@@ -154,6 +156,7 @@ pub async fn proxy_agent_chat_handler(
         message: request.message,
         thread_id: target_room_id.to_string(),
         chat_history_id: chat_history_id.to_string(),
+        is_new_conversation,
         user_id: auth_user.user_id.to_string(),
         user_context: request.user_context,
         image: request.image,
