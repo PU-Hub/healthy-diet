@@ -13,7 +13,6 @@ use std::sync::Arc;
 use std::{convert::Infallible, time::Duration};
 use tokio::fs;
 use tracing::error;
-use tracing_subscriber::fmt::format;
 use uuid::Uuid;
 
 use crate::{
@@ -180,7 +179,7 @@ pub async fn proxy_agent_chat_handler(
         image: request.image,
     };
 
-    let node_api_url = env::var(ENVKey::AGENT_API_URL).map_err(|e| {
+    let node_api_base_url = env::var(ENVKey::AGENT_API_URL).map_err(|e| {
         error!("cannot get env value {:?}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -189,6 +188,8 @@ pub async fn proxy_agent_chat_handler(
             }),
         )
     })?;
+
+    let node_api_url = format!("{}/api/chat", node_api_base_url);
 
     let res = client
         .post(node_api_url)
