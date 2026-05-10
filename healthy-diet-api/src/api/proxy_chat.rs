@@ -51,11 +51,28 @@ pub struct ProxyChatCheckResponse {
 }
 
 pub async fn proxy_chat_check_handler() -> (StatusCode, Json<ProxyChatCheckResponse>) {
-    let ping_url = "http://localhist:8001/ping";
+    let node_api_url = match env::var(ENVKey::AGENT_API_URL) {
+        Ok(url) => url,
+        Err(e) => {
+            error!("cannot get env value {:?}", e);
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ProxyChatCheckResponse {
+                    ping_url: "a".to_string(),
+                    ping_ok: false,
+                    proxy_chat_available: false,
+                    ping_status_code: None,
+                    ping_response: Some(format!("lost environment variable: {}", e)),
+                }),
+            );
+        }
+    };
+
+    let ping_url = format!("{}/ping", node_api_url);
     let client = Client::new();
 
     match client
-        .get(ping_url)
+        .get(&ping_url)
         .timeout(Duration::from_secs(5))
         .send()
         .await
@@ -162,7 +179,7 @@ pub async fn proxy_agent_chat_handler(
         image: request.image,
     };
 
-    let node_api_url = env::var(ENVKey::AGENT_API_URL).map_err(|e| {
+    let node_api_base_url = env::var(ENVKey::AGENT_API_URL).map_err(|e| {
         error!("cannot get env value {:?}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -171,6 +188,8 @@ pub async fn proxy_agent_chat_handler(
             }),
         )
     })?;
+
+    let node_api_url = format!("{}/api/chat", node_api_base_url);
 
     let res = client
         .post(node_api_url)
