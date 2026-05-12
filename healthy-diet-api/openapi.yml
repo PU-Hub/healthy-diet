@@ -1,164 +1,224 @@
-openapi: 3.0.0
-
+openapi: 3.0.3
 info:
   title: Healthy Diet API
   version: 1.0.0
-  description: |
-    健康飲食的 RESTful API 服務。提供完整的使用者認證、飲食記錄管理、營養分析及
-    個人化建議功能端點。
-
+  description: API specification synchronized with current Axum routes.
 servers:
-  - url: http://localhost:3000/api
-    description: 本地開發伺服器
-  - url: http://120.110.113.111:3000
-    description: 外地連接(國外除外)
-  # TODO: 添加生產伺服器連結 URL
+  - url: http://localhost:3000
+    description: Local development
 
 tags:
-  - name: Authentication
-    description: 使用者認證與 Session 管理操作，包括註冊、登入及基於 Token 的授權機制。
-  - name: Users
-    description: 使用者個人資料與帳戶管理端點，用於擷取與更新使用者資訊及偏好設定。
-  - name: Diet Records
-    description: 建立、擷取、更新與刪除每日飲食攝取記錄及餐點條目的操作。
-  - name: Nutrition
-    description: 基於使用者飲食模式提供營養分析服務與個人化飲食建議。
   - name: System
-    description: 系統健康監控與服務可用性端點，用於基礎設施監控與負載平衡。
+  - name: Authentication
+  - name: Users
+  - name: Nutrition
+  - name: Diet
+  - name: Chat
+  - name: Admin
 
 paths:
-  /auth/login:
-    post:
-      summary: 使用者登入
-      description: |
-        驗證使用者身分並返回用於後續 API 請求的存取 Token 及使用者資訊。
-        客戶端應提交有效的電子郵件及密碼憑證。成功驗證後，回應將包含 JWT Token 及使用者基本資料。
-      operationId: login
-      tags: [Authentication]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LoginRequestBody"
-            examples:
-              example:
-                value:
-                  email: example@example.com
-                  password: password
+  /:
+    get:
+      tags: [System]
+      summary: Root health text
+      operationId: root
       responses:
-        "200":
-          description: 驗證成功。返回 JWT Token 與使用者資訊。
+        '200':
+          description: Connect success message
           content:
-            application/json:
+            text/plain:
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-              examples:
-                success:
-                  summary: 成功登入
-                  value:
-                    token: "eyJhbGciOiJIUzI1Ni..."
-                    refreshToken: "eyJhbGciOiJIUzI1Ni..."
-                    expiresIn: 3600
-                    user:
-                      id: "550e8400-e29b-41d4-a716-446655440000"
-                      email: "example@example.com"
-                      nickname: "HealthyUser"
-                      avatarUrl: null
+                type: string
+                example: Connect Success!
 
-  /auth/register:
-    post:
-      summary: 使用者註冊
-      description: |
-        使用提供的憑證建立新的使用者帳戶。註冊成功後，帳戶即可透過登入端點進行驗證。
-      operationId: register
-      tags: [Authentication]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RegisterRequestBody"
-            examples:
-              example:
-                value:
-                  email: example@example.com
-                  password: password
-                  nickname: "NewUser"
+  /ping:
+    get:
+      tags: [System]
+      summary: Ping server
+      operationId: ping
       responses:
-        "200":
-          description: 使用者帳戶建立成功。
+        '200':
+          description: Meme-style ping text
           content:
-            application/json:
+            text/plain:
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-
-  /auth/refresh:
-    post:
-      summary: 更新存取 Token
-      description: |
-        使用有效的更新 Token 產生新的存取 Token。
-      operationId: refreshToken
-      tags: [Authentication]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RefreshTokenRequestBody"
-            examples:
-              example:
-                value:
-                  refreshToken: "eyJhbGciOiJIUzI1Ni..."
-      responses:
-        "200":
-          description: Token 更新成功。
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
-          description: 無效或已過期的更新 Token。
+                type: string
 
   /health:
     get:
-      summary: API 健康檢查
-      description: 返回 API 服務目前的運作狀態。
-      operationId: checkHealth
       tags: [System]
+      summary: Health check
+      operationId: healthCheck
       responses:
-        "200":
-          description: 服務正常運作。
+        '200':
+          description: Service is healthy
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SystemHealthResponse"
-              examples:
-                healthy:
-                  value:
-                    status: ok
-                    time: "2025-12-23T10:30:00.000Z"
-                    uptime: 86400
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/discord/login:
+    get:
+      tags: [Authentication]
+      summary: Redirect to Discord OAuth login
+      operationId: discordLogin
+      responses:
+        '307':
+          description: Temporary redirect to Discord OAuth authorize URL
+
+  /auth/discord/callbck:
+    get:
+      tags: [Authentication]
+      summary: Discord OAuth callback
+      operationId: discordCallback
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Discord login result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordLoginResponse'
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register account
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+      responses:
+        '200':
+          description: Register success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenPayload'
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid/expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /user/profile:
     get:
-      summary: 取得個人詳細資料
-      description: 取得使用者的基本資料、身體數值以及最近的 AI 諮詢紀錄。
-      operationId: getProfile
       tags: [Users]
+      summary: Get profile
+      operationId: getProfile
       security:
         - bearerAuth: []
       responses:
-        "200":
-          description: 成功取得資料
+        '200':
+          description: User profile detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserDetailResponse"
-        "401":
-          description: 未授權 (Token 無效或過期)
+                $ref: '#/components/schemas/UserDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
-      summary: 更新個人資料
-      description: 更新使用者的暱稱、身高、體重或飲食禁忌。支援部分更新 (Partial Update)。
-      operationId: updateProfile
       tags: [Users]
+      summary: Update profile
+      operationId: updateProfile
       security:
         - bearerAuth: []
       requestBody:
@@ -166,26 +226,32 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateProfilePayload"
+              $ref: '#/components/schemas/UpdateProfilePayload'
       responses:
-        "200":
-          description: 更新成功
+        '200':
+          description: Updated profile
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserDetailResponse"
-        "400":
-          description: 資料格式錯誤
+                $ref: '#/components/schemas/UserDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Update failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /consult:
     post:
-      summary: AI 營養諮詢
-      description: |
-        發送健康或飲食相關問題給 AI。
-        系統會自動讀取該使用者的個人檔案 (身高、體重、飲食禁忌) 並附加在提示詞中，以獲得個人化的建議。
-        對話紀錄會自動儲存至資料庫。
-      operationId: consultAI
       tags: [Nutrition]
+      summary: Ask AI nutrition consult
+      operationId: consult
       security:
         - bearerAuth: []
       requestBody:
@@ -193,28 +259,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ConsultRequest"
+              $ref: '#/components/schemas/ConsultRequest'
       responses:
-        "200":
-          description: 諮詢成功，回傳 AI 的建議
+        '200':
+          description: AI reply
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConsultResponse"
-        "401":
-          description: 未授權 (Token 無效或過期)
-        "429":
-          description: 請求過於頻繁 (達到 AI API 限制)
-        "500":
-          description: 伺服器內部錯誤 (資料庫錯誤或 AI 服務連線失敗)
+                $ref: '#/components/schemas/ConsultResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server/AI error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /diet:
     post:
-      summary: 食物圖片辨識與熱量計算
-      description: |
-        上傳飲食圖片，系統將使用 YOLO 模型辨識食物種類，並透過 Bounding Box 面積估算各項食材的重量與總熱量。
-      operationId: analyzeDietImage
-      tags: [Diet Records]
+      tags: [Diet]
+      summary: Analyze diet image with YOLO and AI scoring
+      operationId: analyzeDiet
       security:
         - bearerAuth: []
       requestBody:
@@ -223,133 +299,557 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - image
+              required: [image]
               properties:
                 image:
                   type: string
                   format: binary
-                  description: 欲辨識的食物照片 (JPG/PNG)
       responses:
-        "200":
-          description: 辨識與熱量計算成功
+        '200':
+          description: Analysis result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CalorieResponse"
-        "400":
-          description: 請求無效 (例如未上傳圖片或圖片格式錯誤)
-        "500":
-          description: 伺服器內部錯誤 (例如 YOLO 辨識引擎執行失敗)
+                $ref: '#/components/schemas/CalorieResponse'
+        '400':
+          description: Invalid upload/image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: YOLO/AI/server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /diet_record:
+    get:
+      tags: [Diet]
+      summary: Get latest diet records (max 30)
+      operationId: getDietRecords
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Diet records list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DietRecordResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /diet_image:
+    post:
+      tags: [Diet]
+      summary: Get analyzed image by record id
+      description: Requires bearer token, or `Authorization: Bearer <N8N_SECRET_KEY>` for n8n integration.
+      operationId: getDietImage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageRequest'
+      responses:
+        '200':
+          description: Base64 image payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden or record not owned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Image/record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /record:
+    post:
+      tags: [System]
+      summary: Record a site visit for current date
+      operationId: recordVisit
+      responses:
+        '200':
+          description: Visit recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Visit recorded successfully
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /month_stats:
+    get:
+      tags: [System]
+      summary: Get daily visit counts of latest 30 days
+      operationId: getMonthStats
+      responses:
+        '200':
+          description: Daily stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyStatsResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /proxy_chat_check:
+    get:
+      tags: [Chat]
+      summary: Check downstream chat agent availability
+      operationId: proxyChatCheck
+      responses:
+        '200':
+          description: Agent is reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyChatCheckResponse'
+        '500':
+          description: Missing configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyChatCheckResponse'
+        '503':
+          description: Agent unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyChatCheckResponse'
+
+  /proxy_chat:
+    post:
+      tags: [Chat]
+      summary: Proxy chat request to agent service (SSE)
+      operationId: proxyChat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentChatRequest'
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "data: {\"type\":\"answer\",\"content\":\"...\"}\n\n"
+        '400':
+          description: Invalid image format/payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server or downstream error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agent_approve:
+    post:
+      tags: [Admin]
+      summary: Approve or reject downstream agent action
+      operationId: approveAgent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentApproveRequest'
+      responses:
+        '200':
+          description: Pass-through JSON from downstream service
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server/downstream error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /chat_rooms:
+    get:
+      tags: [Chat]
+      summary: Get chat room list
+      operationId: getChatRooms
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Chat rooms
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rooms:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoomResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /chat_room_titles:
+    get:
+      tags: [Chat]
+      summary: Get chat room titles and summaries
+      operationId: getChatRoomTitles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Chat room title list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rooms:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatRoomTitleItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /room_history/{room_id}:
+    get:
+      tags: [Chat]
+      summary: Get room history messages
+      operationId: getRoomHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: room_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: History list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /room_history/{room_id}/index/{index}:
+    get:
+      tags: [Chat]
+      summary: Get specific room history detail by index
+      operationId: getRoomHistoryByIndex
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: room_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: index
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        '200':
+          description: History detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    $ref: '#/components/schemas/RoomHistoryDetailResponse'
+        '400':
+          description: Invalid index
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Index out of range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
     UserProfile:
       type: object
-      required:
-        - id
-        - email
+      required: [id, email]
       properties:
         id:
           type: string
           format: uuid
-          description: 使用者唯一識別碼 (UUID)
         email:
           type: string
           format: email
         nickname:
           type: string
           nullable: true
-          description: 使用者暱稱
-        avatarUrl:
+        avatar_url:
           type: string
           nullable: true
-          description: 頭像圖片連結 (對應 Rust 的 avatar_url，JSON 欄位為 avatarUrl)
-
-    LoginRequestBody:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          example: example@example.com
-        password:
-          type: string
-          format: password
-          example: password
-
-    RegisterRequestBody:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          example: example@example.com
-        password:
-          type: string
-          format: password
-          example: password
-        nickname:
-          type: string
-          nullable: true
-          description: (選填) 使用者暱稱
-          example: HealthyUser
-        avatarUrl:
-          type: string
-          nullable: true
-          description: (選填) 頭像 URL
-          example: https://example.com/avatar.jpg
-
-    RefreshTokenRequestBody:
-      type: object
-      required:
-        - refreshToken
-      properties:
-        refreshToken:
-          type: string
-          example: "eyJhbGciOiJIUzI1Ni..."
 
     AuthResponse:
       type: object
-      required:
-        - token
-        - refreshToken
-        - expiresIn
-        - user
+      required: [token, refreshToken, expiresIn, user]
       properties:
         token:
           type: string
-          description: JWT Access Token
         refreshToken:
           type: string
-          description: Refresh Token
         expiresIn:
           type: integer
-          description: Token 有效秒數
+          format: int64
         user:
-          $ref: "#/components/schemas/UserProfile"
+          $ref: '#/components/schemas/UserProfile'
 
-    SystemHealthResponse:
+    RegisterPayload:
       type: object
-      required:
-        - status
-        - time
-        - uptime
+      required: [email, password]
       properties:
-        status:
+        email:
           type: string
-          enum: [ok, degraded, fail]
-        time:
+          format: email
+        password:
           type: string
-          format: date-time
-        uptime:
+          minLength: 6
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 20
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+
+    LoginPayload:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenPayload:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    AiConsultationRecord:
+      type: object
+      required: [id, question, ai_response, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        question:
+          type: string
+        ai_response:
+          type: string
+        created_at:
+          type: string
+
+    UserDetailResponse:
+      type: object
+      required: [id, email, aiConsultations]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        nickname:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        height:
           type: number
+          format: double
+          nullable: true
+        weight:
+          type: number
+          format: double
+          nullable: true
+        age:
+          type: number
+          format: double
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        taboo:
+          type: array
+          nullable: true
+          items:
+            type: string
+        disease:
+          type: array
+          nullable: true
+          items:
+            type: string
+        aiConsultations:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiConsultationRecord'
 
     UpdateProfilePayload:
       type: object
@@ -357,145 +857,357 @@ components:
         nickname:
           type: string
           nullable: true
-          example: "FitnessGuru"
         height:
           type: number
           format: double
           nullable: true
-          description: 身高 (cm)
-          example: 175.5
         weight:
           type: number
           format: double
           nullable: true
-          description: 體重 (kg)
-          example: 68.0
-        dietary_restrictions:
+        age:
+          type: number
+          format: double
+          nullable: true
+        gender:
           type: string
           nullable: true
-          description: 飲食禁忌或過敏源
-          example: "不吃花生, 素食"
+        taboo:
+          type: array
+          nullable: true
+          items:
+            type: string
+        disease:
+          type: array
+          nullable: true
+          items:
+            type: string
 
-    AiConsultationRecord:
+    ConsultRequest:
       type: object
-      required:
-        - id
-        - question
-        - aiResponse
-        - createdAt
+      required: [question]
+      properties:
+        question:
+          type: string
+
+    ConsultResponse:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+
+    FoodItem:
+      type: object
+      required: [class, confidence, estimated_weight_g, calories]
+      properties:
+        class:
+          type: string
+        confidence:
+          type: number
+          format: double
+        estimated_weight_g:
+          type: number
+          format: double
+        calories:
+          type: number
+          format: double
+
+    CalorieResponse:
+      type: object
+      required: [message, total_calories, detected_items, ai_score, ai_comment]
+      properties:
+        message:
+          type: string
+        total_calories:
+          type: number
+          format: double
+        detected_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FoodItem'
+        image_base64:
+          type: string
+          nullable: true
+        ai_score:
+          type: integer
+        ai_comment:
+          type: string
+
+    DietRecordResponse:
+      type: object
+      required: [id, created_at, total_calories]
       properties:
         id:
           type: string
           format: uuid
-        question:
+        created_at:
           type: string
-          description: 使用者問的問題
-          example: "我想減肥該吃什麼？"
-        aiResponse:
-          type: string
-          description: AI 的回答
-          example: "建議多攝取蛋白質..."
-        createdAt:
-          type: string
-          format: date-time
-          example: "2025-12-25T14:30:00Z"
-
-    UserDetailResponse:
-      allOf:
-        - $ref: "#/components/schemas/UserProfile"
-        - type: object
-          properties:
-            height:
-              type: number
-              nullable: true
-            weight:
-              type: number
-              nullable: true
-            dietaryRestrictions:
-              type: string
-              nullable: true
-            aiConsultations:
-              type: array
-              items:
-                $ref: "#/components/schemas/AiConsultationRecord"
-
-    ConsultRequest:
-      type: object
-      required:
-        - question
-      properties:
-        question:
-          type: string
-          minLength: 1
-          maxLength: 500
-          description: 使用者想問的問題
-          example: "我剛跑完步，有乳糖不耐症，晚餐推薦吃什麼？"
-
-    ConsultResponse:
-      type: object
-      required:
-        - reply
-      properties:
-        reply:
-          type: string
-          description: AI 營養師的回覆內容
-          example: "運動後建議補充優質蛋白質。考慮到您有乳糖不耐症，建議攝取豆漿、雞胸肉或水煮蛋，避免飲用牛奶。"
-
-    CalorieResponse:
-      type: object
-      required:
-        - message
-        - total_calories
-        - detected_items
-      properties:
-        message:
-          type: string
-          description: API 執行狀態訊息
-          example: "辨識與熱量計算完成"
         total_calories:
           type: number
           format: double
-          description: 照片中食物的總預估熱量 (大卡)
-          example: 452.5
-        detected_items:
-          type: array
-          description: 偵測到的各項食物清單
-          items:
-            $ref: "#/components/schemas/DetectedFoodItem"
-
-    DetectedFoodItem:
-      type: object
-      required:
-        - class
-        - confidence
-        - estimated_weight_g
-        - calories
-      properties:
-        class:
+        grain_calories:
+          type: number
+          format: double
+          nullable: true
+        grain_area:
+          type: number
+          format: double
+          nullable: true
+        protein_meat_calories:
+          type: number
+          format: double
+          nullable: true
+        protein_meat_area:
+          type: number
+          format: double
+          nullable: true
+        protein_bean_calories:
+          type: number
+          format: double
+          nullable: true
+        protein_bean_area:
+          type: number
+          format: double
+          nullable: true
+        vegetable_calories:
+          type: number
+          format: double
+          nullable: true
+        vegetable_area:
+          type: number
+          format: double
+          nullable: true
+        fruit_calories:
+          type: number
+          format: double
+          nullable: true
+        fruit_area:
+          type: number
+          format: double
+          nullable: true
+        dairy_calories:
+          type: number
+          format: double
+          nullable: true
+        dairy_area:
+          type: number
+          format: double
+          nullable: true
+        nuts_calories:
+          type: number
+          format: double
+          nullable: true
+        nuts_area:
+          type: number
+          format: double
+          nullable: true
+        ai_health_score:
+          type: integer
+          nullable: true
+        ai_evaluation:
           type: string
-          description: 辨識出的食物類別 (如 rice, pork, leafy_veg)
-          example: "pork"
-        confidence:
-          type: number
-          format: double
-          description: AI 辨識的信心水準 (0.00 ~ 1.00)
-          example: 0.94
-        estimated_weight_g:
-          type: number
-          format: double
-          description: 根據像素面積推算的預估重量 (克)
-          example: 120.5
-        calories:
-          type: number
-          format: double
-          description: 該項食物的預估熱量 (大卡)
-          example: 301.25
+          nullable: true
 
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    ImageRequest:
+      type: object
+      required: [record_id]
+      properties:
+        record_id:
+          type: string
+          format: uuid
 
-security:
-  - bearerAuth: []
+    ImageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        image_base64:
+          type: string
+          nullable: true
+        original_image_base64:
+          type: string
+          nullable: true
+
+    DailyStatsResponse:
+      type: object
+      required: [date, visit_count]
+      properties:
+        date:
+          type: string
+        visit_count:
+          type: integer
+
+    ProxyChatCheckResponse:
+      type: object
+      required: [pingUrl, pingOk, proxyChatAvailable]
+      properties:
+        pingUrl:
+          type: string
+        pingOk:
+          type: boolean
+        proxyChatAvailable:
+          type: boolean
+        pingStatusCode:
+          type: integer
+          nullable: true
+        pingResponse:
+          type: string
+          nullable: true
+
+    AgentChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        room_id:
+          type: string
+          format: uuid
+          nullable: true
+        user_context:
+          type: object
+          nullable: true
+          additionalProperties: true
+        image:
+          type: string
+          nullable: true
+          description: Absolute path, base64, or data URL image payload
+
+    AgentApproveRequest:
+      type: object
+      required: [thread_id, action]
+      properties:
+        thread_id:
+          type: string
+        action:
+          type: string
+          enum: [approve, reject]
+
+    RoomResponse:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        last_updated:
+          type: string
+          format: date-time
+          nullable: true
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          example: user
+        content:
+          type: string
+        image_path:
+          type: string
+          nullable: true
+        image_base64:
+          type: string
+          nullable: true
+
+    ChatRoomTitleItem:
+      type: object
+      required: [roomId, title, summary]
+      properties:
+        roomId:
+          type: string
+        title:
+          type: string
+        summary:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: array
+              items:
+                type: object
+                additionalProperties: true
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    RoomHistoryDetailResponse:
+      type: object
+      required: [id, roomId, userId, index]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        index:
+          type: integer
+          format: int64
+        userMessage:
+          type: string
+          nullable: true
+        imagePath:
+          type: string
+          nullable: true
+        imageBase64:
+          type: string
+          nullable: true
+        aiAnalysisReport:
+          type: string
+          nullable: true
+        dietReport:
+          type: object
+          nullable: true
+          additionalProperties: true
+        title:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        summaryUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    DiscordUser:
+      type: object
+      required: [id, username, discriminator]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        discriminator:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+
+    DiscordLoginResponse:
+      type: object
+      required: [message, data]
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/DiscordUser'
