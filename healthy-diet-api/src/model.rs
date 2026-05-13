@@ -25,9 +25,9 @@ impl APIRouter {
     pub const RECORD: &'static str = "/record";
     pub const MONTH_STATS: &'static str = "/month_stats";
     pub const GEMMA4_HEALTH: &'static str = "/gemma4/health";
-    pub const PROXY_CHAT: &'static str = "/proxy_chat";
+    pub const PROXY_CHAT: &'static str = "/api/chat";
     pub const PROXY_CHAT_CHECK: &'static str = "/proxy_chat_check";
-    pub const AGENT_APPROVE: &'static str = "/agent_approve";
+    pub const AGENT_APPROVE: &'static str = "/api/approve";
     pub const CHAT_ROOM: &'static str = "/chat_rooms";
     pub const CHAT_ROOM_TITLES: &'static str = "/chat_room_titles";
     pub const ROOM_HOSTROY: &'static str = "/room_history/{room_id}";
