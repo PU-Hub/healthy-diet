@@ -9,7 +9,7 @@ use crate::{api::model::ErrorResponse, model::ENVKey, utils::jwt::AuthUser};
 
 #[derive(Deserialize, Serialize)]
 pub struct AgentApproveRequest {
-    pub approve_id: String,
+    pub approval_id: String,
     pub action: String, // approve or reject
 }
 
@@ -20,7 +20,7 @@ pub async fn approve_agent(
     let client = Client::new();
     info!(
         user_id = %auth_user.user_id,
-        approve_id = %payload.approve_id,
+        approval_id = %payload.approval_id,
         action = %payload.action,
         "agent_approve request received"
     );
