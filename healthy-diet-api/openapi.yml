@@ -1077,9 +1077,9 @@ components:
 
     AgentApproveRequest:
       type: object
-      required: [thread_id, action]
+      required: [approve_id, action]
       properties:
-        thread_id:
+        approve_id:
           type: string
         action:
           type: string
