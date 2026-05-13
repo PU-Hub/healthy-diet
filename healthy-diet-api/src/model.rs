@@ -24,6 +24,7 @@ impl APIRouter {
     pub const DIET_IMAGE: &'static str = "/diet_image";
     pub const RECORD: &'static str = "/record";
     pub const MONTH_STATS: &'static str = "/month_stats";
+    pub const GEMMA4_HEALTH: &'static str = "/gemma4/health";
     pub const PROXY_CHAT: &'static str = "/proxy_chat";
     pub const PROXY_CHAT_CHECK: &'static str = "/proxy_chat_check";
     pub const AGENT_APPROVE: &'static str = "/agent_approve";

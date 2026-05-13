@@ -9,6 +9,7 @@ use crate::{
         diet::yolo_handler,
         diet_image::diet_image_handler,
         diet_record::diet_records_handler,
+        gemma4::gemma4_health_handler,
         health::healthy_server_handler,
         login::login_handler,
         ping::ping_handler,
@@ -48,6 +49,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::DIET_RECORD, get(diet_records_handler))
         .route(APIRouter::DIET_IMAGE, post(diet_image_handler))
         .route(APIRouter::MONTH_STATS, get(weekly_stats_handler))
+        .route(APIRouter::GEMMA4_HEALTH, get(gemma4_health_handler))
         .route(APIRouter::RECORD, post(record_visit_handler))
         .route(APIRouter::PROXY_CHAT, post(proxy_agent_chat_handler))
         .route(APIRouter::PROXY_CHAT_CHECK, get(proxy_chat_check_handler))

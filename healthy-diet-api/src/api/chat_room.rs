@@ -63,18 +63,18 @@ pub async fn get_chat_rooms_handler(
     State(state): State<Arc<AppState>>,
     auth_user: AuthUser,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
-    let rooms = sqlx::query!(
+    let rows = sqlx::query(
         r#"
-        SELECT DISTINCT ON (room_id)
+        SELECT
             room_id,
-            user_message as title,
-            created_at as last_updated
-        FROM diet_chat_history
+            title,
+            last_message_at as last_updated
+        FROM chat_rooms
         WHERE user_id = $1
-        ORDER BY room_id, created_at ASC
+        ORDER BY last_message_at DESC NULLS LAST, created_at DESC
         "#,
-        auth_user.user_id
     )
+    .bind(auth_user.user_id)
     .fetch_all(&state.db)
     .await
     .map_err(|e| {
@@ -87,11 +87,13 @@ pub async fn get_chat_rooms_handler(
         )
     })?;
 
-    let mut room_responses: Vec<RoomResponse> = rooms
+    let room_responses: Vec<RoomResponse> = rows
         .into_iter()
-        .map(|r| {
-            let display_title = r
-                .title
+        .map(|row| {
+            let title: Option<String> = row.try_get("title").ok().flatten();
+            let last_updated: Option<DateTime<Utc>> = row.try_get("last_updated").ok().flatten();
+
+            let display_title = title
                 .map(|t| {
                     if t.chars().count() > 20 {
                         format!("{}...", t.chars().take(20).collect::<String>())
@@ -102,14 +104,12 @@ pub async fn get_chat_rooms_handler(
                 .unwrap_or_else(|| "新對話".to_string());
 
             RoomResponse {
-                id: r.room_id,
+                id: row.try_get::<String, _>("room_id").unwrap_or_default(),
                 title: display_title,
-                last_updated: r.last_updated,
+                last_updated,
             }
         })
         .collect();
-
-    room_responses.sort_by(|a, b| b.last_updated.cmp(&a.last_updated));
 
     Ok((StatusCode::OK, Json(json!({ "rooms": room_responses }))))
 }
