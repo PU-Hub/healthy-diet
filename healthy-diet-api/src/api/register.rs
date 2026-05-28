@@ -1,5 +1,5 @@
 use crate::{
-    api::model::{AuthResponse, ErrorResponse, RegisterPayload, User, UserProfile},
+    api::model::{AuthResponse, ErrorResponse, ROLE_USER, RegisterPayload, User, UserProfile},
     model::AppState,
     utils::{hash::hash_password, jwt::sign_jwt},
 };
@@ -59,16 +59,16 @@ pub async fn register_handler(
         )
     })?;
 
-    let user = sqlx::query_as!(
-        User,
-        "INSERT INTO users (email, password_hash, nickname, avatar_url) 
-         VALUES ($1, $2, $3, $4) 
-         RETURNING id, email, password_hash, nickname, avatar_url",
-        payload.email,
-        password_hash,
-        payload.nickname,
-        payload.avatar_url
+    let user = sqlx::query_as::<_, User>(
+        "INSERT INTO users (email, password_hash, nickname, avatar_url, role) 
+         VALUES ($1, $2, $3, $4, $5) 
+         RETURNING id, email, password_hash, nickname, avatar_url, role",
     )
+    .bind(&payload.email)
+    .bind(&password_hash)
+    .bind(&payload.nickname)
+    .bind(&payload.avatar_url)
+    .bind(ROLE_USER)
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
@@ -92,7 +92,7 @@ pub async fn register_handler(
     })?;
 
     let (token, refresh_token, expires_in) =
-        sign_jwt(&user.id.to_string(), &user.email).map_err(|e| {
+        sign_jwt(&user.id.to_string(), &user.email, &user.role).map_err(|e| {
             error!("JWT generation error: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -113,6 +113,7 @@ pub async fn register_handler(
             email: user.email,
             nickname: user.nickname,
             avatar_url: user.avatar_url,
+            role: user.role,
         },
     }))
 }
@@ -141,6 +142,7 @@ mod tests {
         let response = result.unwrap().0;
 
         assert_eq!(response.user.email, random_email);
+        assert_eq!(response.user.role, "user".to_string());
         assert!(!response.token.is_empty());
         assert!(!response.refresh_token.is_empty());
         assert_eq!(response.expires_in, 3600);

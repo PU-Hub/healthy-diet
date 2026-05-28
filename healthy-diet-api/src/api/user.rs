@@ -155,6 +155,7 @@ mod tests {
         let auth_user = AuthUser {
             user_id: user.id,
             email: email.clone(),
+            role: "user".to_string(),
         };
 
         let result = get_profile_handler(auth_user, State(state.clone())).await;
@@ -183,6 +184,7 @@ mod tests {
         let auth_user = AuthUser {
             user_id: user.id,
             email: email.clone(),
+            role: "user".to_string(),
         };
 
         let payload = UpdateProfilePayload {

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Json, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode, header::AUTHORIZATION},
     response::sse::{Event, Sse},
 };
 use base64::{Engine as _, engine::general_purpose};
@@ -118,6 +118,7 @@ pub async fn proxy_chat_check_handler() -> (StatusCode, Json<ProxyChatCheckRespo
 
 pub async fn proxy_agent_chat_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     auth_user: AuthUser,
     Json(request): Json<AgentChatRequest>,
 ) -> Result<
@@ -191,20 +192,22 @@ pub async fn proxy_agent_chat_handler(
 
     let node_api_url = format!("{}/api/chat", node_api_base_url);
 
-    let res = client
-        .post(node_api_url)
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|e| {
-            error!("forward to Node.js Agent failed: {:?}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "AI request failed".into(),
-                }),
-            )
-        })?;
+    let mut agent_request = client.post(node_api_url).json(&payload);
+    if let Some(auth_value) = headers.get(AUTHORIZATION) {
+        if let Ok(auth_str) = auth_value.to_str() {
+            agent_request = agent_request.header(AUTHORIZATION.as_str(), auth_str);
+        }
+    }
+
+    let res = agent_request.send().await.map_err(|e| {
+        error!("forward to Node.js Agent failed: {:?}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "AI request failed".into(),
+            }),
+        )
+    })?;
 
     let stream = res.bytes_stream().map(|chunk| match chunk {
         Ok(bytes) => {

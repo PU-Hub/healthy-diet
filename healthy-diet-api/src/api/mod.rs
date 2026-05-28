@@ -1,4 +1,6 @@
+pub mod admin;
 pub mod agent_approve;
+pub mod announcement;
 pub mod basic_calculator;
 pub mod chat_room;
 pub mod consult;
@@ -11,6 +13,7 @@ pub mod login;
 pub mod model;
 pub mod ping;
 pub mod proxy_chat;
+pub mod rag_document;
 pub mod record;
 pub mod refresh;
 pub mod register;

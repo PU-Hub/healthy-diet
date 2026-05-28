@@ -369,7 +369,7 @@ paths:
     post:
       tags: [Diet]
       summary: Get analyzed image by record id
-      description: Requires bearer token, or `Authorization: Bearer <N8N_SECRET_KEY>` for n8n integration.
+      description: Requires bearer token.
       operationId: getDietImage
       requestBody:
         required: true

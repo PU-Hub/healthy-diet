@@ -1,7 +1,8 @@
 use axum::{
     Json, RequestPartsExt,
-    extract::FromRequestParts,
-    http::{StatusCode, request::Parts},
+    extract::{FromRequestParts, Request},
+    http::{StatusCode, header::AUTHORIZATION, request::Parts},
+    middleware::Next,
     response::{IntoResponse, Response},
 };
 use axum_extra::{
@@ -14,12 +15,21 @@ use std::convert::Infallible;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{api::model::ErrorResponse, model::ENVKey};
+use crate::{
+    api::model::{ErrorResponse, ROLE_USER, is_admin_role},
+    model::ENVKey,
+};
+
+fn default_user_role() -> String {
+    ROLE_USER.to_string()
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
     pub email: String,
+    #[serde(default = "default_user_role")]
+    pub role: String,
     pub exp: usize,
     pub iat: usize,
     pub token_type: String,
@@ -28,12 +38,21 @@ pub struct Claims {
 pub fn sign_jwt(
     user_id: &str,
     email: &str,
+    role: &str,
+) -> Result<(String, String, usize), jsonwebtoken::errors::Error> {
+    sign_jwt_with_access_ttl(user_id, email, role, 3600)
+}
+
+pub fn sign_jwt_with_access_ttl(
+    user_id: &str,
+    email: &str,
+    role: &str,
+    access_expires_in: usize,
 ) -> Result<(String, String, usize), jsonwebtoken::errors::Error> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs() as usize;
-    let access_expires_in = 3600;
     let refresh_expires_in = 86400 * 7;
     let access_exp = now + access_expires_in;
     let refresh_exp = now + refresh_expires_in;
@@ -44,6 +63,7 @@ pub fn sign_jwt(
     let access_claims = Claims {
         sub: user_id.to_owned(),
         email: email.to_owned(),
+        role: role.to_owned(),
         exp: access_exp,
         iat: now,
         token_type: "access".to_string(),
@@ -53,6 +73,7 @@ pub fn sign_jwt(
     let refresh_claims = Claims {
         sub: user_id.to_owned(),
         email: email.to_owned(),
+        role: role.to_owned(),
         exp: refresh_exp,
         iat: now,
         token_type: "refresh".to_string(),
@@ -72,6 +93,48 @@ pub fn decode_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
 pub struct AuthUser {
     pub user_id: uuid::Uuid,
     pub email: String,
+    pub role: String,
+}
+
+fn auth_error_response(status: StatusCode, message: &str) -> Response {
+    (
+        status,
+        Json(ErrorResponse {
+            error: message.to_string(),
+        }),
+    )
+        .into_response()
+}
+
+pub async fn require_admin_middleware(request: Request, next: Next) -> Response {
+    let auth_header = match request.headers().get(AUTHORIZATION) {
+        Some(value) => value,
+        None => return auth_error_response(StatusCode::UNAUTHORIZED, "Missing Bearer Token"),
+    };
+
+    let auth_value = match auth_header.to_str() {
+        Ok(value) => value,
+        Err(_) => return auth_error_response(StatusCode::UNAUTHORIZED, "Invalid Token"),
+    };
+
+    let Some(token) = auth_value.strip_prefix("Bearer ") else {
+        return auth_error_response(StatusCode::UNAUTHORIZED, "Invalid Token");
+    };
+
+    let claims = match decode_jwt(token) {
+        Ok(claims) => claims,
+        Err(_) => return auth_error_response(StatusCode::UNAUTHORIZED, "Invalid Token"),
+    };
+
+    if claims.token_type != "access" {
+        return auth_error_response(StatusCode::UNAUTHORIZED, "Invalid Token Type");
+    }
+
+    if !is_admin_role(&claims.role) {
+        return auth_error_response(StatusCode::FORBIDDEN, "Admin access required");
+    }
+
+    next.run(request).await
 }
 
 impl<S> FromRequestParts<S> for AuthUser
@@ -117,6 +180,7 @@ where
         Ok(AuthUser {
             user_id,
             email: claims.email,
+            role: claims.role,
         })
     }
 }

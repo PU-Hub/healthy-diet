@@ -1,2 +1,5 @@
 .env
 target/
+docs/admin_feature_implementation_plan.md
+uploads/rag_docs/
+docs/

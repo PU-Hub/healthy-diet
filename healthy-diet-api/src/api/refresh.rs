@@ -42,11 +42,10 @@ pub async fn refresh_handler(
         )
     })?;
 
-    let user = sqlx::query_as!(
-        User,
-        "SELECT id, email, password_hash, nickname, avatar_url FROM users WHERE id = $1",
-        user_id,
+    let user = sqlx::query_as::<_, User>(
+        "SELECT id, email, password_hash, nickname, avatar_url, role FROM users WHERE id = $1",
     )
+    .bind(user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(|e| {
@@ -72,8 +71,8 @@ pub async fn refresh_handler(
         }
     };
 
-    let (new_token, new_refresh_token, expires_in) = sign_jwt(&user.id.to_string(), &user.email)
-        .map_err(|e| {
+    let (new_token, new_refresh_token, expires_in) =
+        sign_jwt(&user.id.to_string(), &user.email, &user.role).map_err(|e| {
             error!("JWT generation error: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -92,6 +91,7 @@ pub async fn refresh_handler(
             avatar_url: user.avatar_url,
             email: user.email,
             nickname: user.nickname,
+            role: user.role,
         },
     }))
 }
@@ -115,7 +115,7 @@ mod tests {
             .await
             .unwrap();
 
-        let (_, refresh_token, _) = sign_jwt(&user.id.to_string(), &email).unwrap();
+        let (_, refresh_token, _) = sign_jwt(&user.id.to_string(), &email, "user").unwrap();
 
         let payload = RefreshTokenPayload { refresh_token };
         let result = refresh_handler(State(state.clone()), Json(payload)).await;

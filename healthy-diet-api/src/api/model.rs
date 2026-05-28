@@ -3,6 +3,18 @@ use sqlx::FromRow;
 use uuid::Uuid;
 use validator::Validate;
 
+pub const ROLE_USER: &str = "user";
+pub const ROLE_OPERATOR: &str = "operator";
+pub const ROLE_SUPER_ADMIN: &str = "super_admin";
+
+pub fn is_admin_role(role: &str) -> bool {
+    matches!(role, ROLE_OPERATOR | ROLE_SUPER_ADMIN)
+}
+
+pub fn is_super_admin(role: &str) -> bool {
+    role == ROLE_SUPER_ADMIN
+}
+
 #[derive(Debug, FromRow)]
 pub struct User {
     pub id: Uuid,
@@ -10,6 +22,7 @@ pub struct User {
     pub password_hash: String,
     pub nickname: Option<String>,
     pub avatar_url: Option<String>,
+    pub role: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -52,6 +65,7 @@ pub struct UserProfile {
     pub email: String,
     pub nickname: Option<String>,
     pub avatar_url: Option<String>,
+    pub role: String,
 }
 
 #[derive(Debug, Serialize)]

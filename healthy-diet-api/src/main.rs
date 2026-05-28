@@ -1,6 +1,7 @@
 use healthy_diet_api_server::{
     model::{AppState, ENVKey},
     router::create_app,
+    utils::rag_worker::start_rag_worker,
 };
 use sqlx::postgres::PgPoolOptions;
 use std::fs;
@@ -36,6 +37,7 @@ async fn main() {
         db: pool,
         ai_prompt_config,
     });
+    start_rag_worker(app_state.clone());
 
     let app = create_app(app_state);
 
