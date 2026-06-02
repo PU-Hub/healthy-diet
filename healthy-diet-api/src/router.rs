@@ -8,6 +8,10 @@ use crate::{
             update_route_control_handler,
         },
         agent_approve::approve_agent,
+        agent_content::{
+            news_detail_handler, news_files_handler, news_list_handler, news_sync_handler,
+            rag_search_get_handler, rag_search_post_handler,
+        },
         announcement::current_announcement_handler,
         chat_room::{
             get_chat_room_titles_handler, get_chat_rooms_handler,
@@ -24,7 +28,9 @@ use crate::{
         proxy_chat::{proxy_agent_chat_handler, proxy_chat_check_handler},
         rag_document::{
             admin_rag_delete_handler, admin_rag_document_detail_handler,
+            admin_rag_document_file_handler, admin_rag_document_preview_handler,
             admin_rag_documents_handler, admin_rag_reindex_handler, admin_rag_upload_handler,
+            public_rag_document_file_handler, public_rag_document_preview_handler,
         },
         record::{record_visit_handler, weekly_stats_handler},
         refresh::refresh_handler,
@@ -90,6 +96,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             APIRouter::ADMIN_RAG_DOCUMENT_REINDEX,
             post(admin_rag_reindex_handler),
         )
+        .route(
+            APIRouter::ADMIN_RAG_DOCUMENT_FILE,
+            get(admin_rag_document_file_handler),
+        )
+        .route(
+            APIRouter::ADMIN_RAG_DOCUMENT_PREVIEW,
+            get(admin_rag_document_preview_handler),
+        )
         .route_layer(middleware::from_fn(require_admin_middleware));
 
     Router::new()
@@ -140,6 +154,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(APIRouter::MONTH_STATS, get(weekly_stats_handler))
         .route(APIRouter::GEMMA4_HEALTH, get(gemma4_health_handler))
         .route(APIRouter::RECORD, post(record_visit_handler))
+        .route(APIRouter::NEWS_SYNC, post(news_sync_handler))
+        .route(APIRouter::NEWS, get(news_list_handler))
+        .route(APIRouter::NEWS_DETAIL, get(news_detail_handler))
+        .route(APIRouter::NEWS_FILES, get(news_files_handler))
+        .route(
+            APIRouter::RAG_SEARCH,
+            get(rag_search_get_handler).post(rag_search_post_handler),
+        )
         .route(
             APIRouter::PROXY_CHAT,
             post(proxy_agent_chat_handler).route_layer(middleware::from_fn_with_state(
@@ -151,6 +173,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             )),
         )
         .route(APIRouter::PROXY_CHAT_CHECK, get(proxy_chat_check_handler))
+        .route(
+            APIRouter::RAG_SOURCE_FILE,
+            get(public_rag_document_file_handler),
+        )
+        .route(
+            APIRouter::RAG_SOURCE_PREVIEW,
+            get(public_rag_document_preview_handler),
+        )
         .route(
             APIRouter::ANNOUNCEMENTS_CURRENT,
             get(current_announcement_handler),

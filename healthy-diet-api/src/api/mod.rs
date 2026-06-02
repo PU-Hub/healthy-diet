@@ -1,5 +1,6 @@
 pub mod admin;
 pub mod agent_approve;
+pub mod agent_content;
 pub mod announcement;
 pub mod basic_calculator;
 pub mod chat_room;

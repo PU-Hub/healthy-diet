@@ -30,8 +30,17 @@ impl APIRouter {
     pub const ADMIN_RAG_DOCUMENTS: &'static str = "/rag/documents";
     pub const ADMIN_RAG_DOCUMENT_DETAIL: &'static str = "/rag/documents/{id}";
     pub const ADMIN_RAG_DOCUMENT_REINDEX: &'static str = "/rag/documents/{id}/reindex";
+    pub const ADMIN_RAG_DOCUMENT_FILE: &'static str = "/rag/documents/{id}/file";
+    pub const ADMIN_RAG_DOCUMENT_PREVIEW: &'static str = "/rag/documents/{id}/preview";
     pub const ADMIN_AGENT_TOKEN: &'static str = "/agent-token";
+    pub const NEWS_SYNC: &'static str = "/api/news/sync";
+    pub const NEWS: &'static str = "/api/news";
+    pub const NEWS_DETAIL: &'static str = "/api/news/{id}";
+    pub const NEWS_FILES: &'static str = "/api/news-files";
+    pub const RAG_SEARCH: &'static str = "/api/rag/search";
     pub const ANNOUNCEMENTS_CURRENT: &'static str = "/announcements/current";
+    pub const RAG_SOURCE_FILE: &'static str = "/rag/sources/{id}/file";
+    pub const RAG_SOURCE_PREVIEW: &'static str = "/rag/sources/{id}/preview";
     pub const PROFILE: &'static str = "/user/profile";
     pub const AI_CONSULT: &'static str = "/consult";
     pub const DIET: &'static str = "/diet";
