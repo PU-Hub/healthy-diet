@@ -8,18 +8,30 @@ use std::fs;
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-const DEFAULT_LOG_FILTER: &str = "info,sqlx=warn";
+const DEFAULT_LOG_FILTER: &str = "info,sqlx=warn,sqlx::query=off";
 
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
 
+    let log_filter = env::var("RUST_LOG")
+        .map(|value| format!("{value},sqlx=warn,sqlx::query=off"))
+        .unwrap_or_else(|_| DEFAULT_LOG_FILTER.to_string());
+
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
+            tracing_subscriber::EnvFilter::try_new(log_filter)
                 .unwrap_or_else(|_| DEFAULT_LOG_FILTER.into()),
         )
-        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .compact()
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_thread_names(false)
+                .with_file(false)
+                .with_line_number(false),
+        )
         .init();
 
     let database_url = env::var(ENVKey::DATABASE_URL).expect("DATABASE_URL must be set");

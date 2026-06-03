@@ -16,6 +16,7 @@ services:
     container_name: diet-api-server
     environment:
       - YOLO_SCRIPT_PATH=/app/yolo_scripts/predict.py
+      - RUST_LOG=info,sqlx=warn,sqlx::query=off
     ports:
       - 3000:3000
     env_file:

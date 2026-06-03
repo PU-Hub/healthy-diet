@@ -44,11 +44,14 @@ use crate::{
 };
 use axum::{
     Router,
-    extract::DefaultBodyLimit,
+    extract::{DefaultBodyLimit, MatchedPath},
+    http::Request,
     middleware,
+    response::Response,
     routing::{get, post},
 };
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
+use tracing::{Span, field::Empty};
 use tower_http::trace::TraceLayer;
 
 pub fn create_app(state: Arc<AppState>) -> Router {
@@ -198,6 +201,56 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .nest(APIRouter::ADMIN, admin_router)
         .layer(DefaultBodyLimit::max(25 * 1024 * 1024))
-        .layer(TraceLayer::new_for_http())
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str)
+                        .unwrap_or("-");
+
+                    tracing::info_span!(
+                        "http_request",
+                        method = %request.method(),
+                        route = matched_path,
+                        path = %request.uri().path(),
+                        status = Empty,
+                    )
+                })
+                .on_request(|_request: &Request<_>, span: &Span| {
+                    tracing::info!(parent: span, "request started");
+                })
+                .on_response(|response: &Response, latency: Duration, span: &Span| {
+                    let status = response.status().as_u16();
+                    span.record("status", status);
+
+                    let latency_ms = latency.as_millis();
+
+                    if response.status().is_server_error() {
+                        tracing::error!(
+                            parent: span,
+                            latency_ms,
+                            "request completed with server error"
+                        );
+                    } else if response.status().is_client_error() {
+                        tracing::warn!(
+                            parent: span,
+                            latency_ms,
+                            "request completed with client error"
+                        );
+                    } else {
+                        tracing::info!(parent: span, latency_ms, "request completed");
+                    }
+                })
+                .on_failure(|failure_class, latency: Duration, span: &Span| {
+                    tracing::error!(
+                        parent: span,
+                        latency_ms = latency.as_millis(),
+                        error = %failure_class,
+                        "request failed"
+                    );
+                }),
+        )
         .with_state(state)
 }
