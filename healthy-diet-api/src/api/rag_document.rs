@@ -504,9 +504,10 @@ pub async fn admin_rag_reindex_handler(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<RagDocumentItem>, (StatusCode, Json<ErrorResponse>)> {
-    let exists = sqlx::query_scalar::<_, i64>("SELECT 1 FROM rag_documents WHERE id = $1")
+    let exists =
+        sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM rag_documents WHERE id = $1)")
         .bind(id)
-        .fetch_optional(&state.db)
+        .fetch_one(&state.db)
         .await
         .map_err(|e| {
             error!("DB Error (RAG Reindex exists): {:?}", e);
@@ -518,7 +519,7 @@ pub async fn admin_rag_reindex_handler(
             )
         })?;
 
-    if exists.is_none() {
+    if !exists {
         return Err((
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
