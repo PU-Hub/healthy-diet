@@ -24,6 +24,7 @@ use crate::{
         gemma4::gemma4_health_handler,
         health::healthy_server_handler,
         login::{admin_login_handler, login_handler},
+        openapi::openapi_yaml_handler,
         ping::ping_handler,
         proxy_chat::{proxy_agent_chat_handler, proxy_chat_check_handler},
         rag_document::{
@@ -95,15 +96,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(admin_rag_documents_handler).post(admin_rag_upload_handler),
         )
         .route(
-            APIRouter::LEGACY_ADMIN_RAG_DOCUMENTS,
-            get(admin_rag_documents_handler).post(admin_rag_upload_handler),
-        )
-        .route(
             APIRouter::ADMIN_RAG_DOCUMENT_DETAIL,
-            get(admin_rag_document_detail_handler).delete(admin_rag_delete_handler),
-        )
-        .route(
-            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_DETAIL,
             get(admin_rag_document_detail_handler).delete(admin_rag_delete_handler),
         )
         .route(
@@ -111,29 +104,18 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(admin_rag_reindex_handler),
         )
         .route(
-            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_REINDEX,
-            post(admin_rag_reindex_handler),
-        )
-        .route(
             APIRouter::ADMIN_RAG_DOCUMENT_FILE,
-            get(admin_rag_document_file_handler),
-        )
-        .route(
-            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_FILE,
             get(admin_rag_document_file_handler),
         )
         .route(
             APIRouter::ADMIN_RAG_DOCUMENT_PREVIEW,
             get(admin_rag_document_preview_handler),
         )
-        .route(
-            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_PREVIEW,
-            get(admin_rag_document_preview_handler),
-        )
         .route_layer(middleware::from_fn(require_admin_middleware));
 
     Router::new()
         .route("/", get(async || "Connect Success!"))
+        .route("/openapi.yml", get(openapi_yaml_handler))
         .route("/ping", get(ping_handler))
         .route(APIRouter::HEALTH, get(healthy_server_handler))
         .route(APIRouter::DISOCRD_LOGIN, get(login_discord))
@@ -189,7 +171,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(rag_search_get_handler).post(rag_search_post_handler),
         )
         .route(
-            APIRouter::PROXY_CHAT,
+            APIRouter::CHAT,
             post(proxy_agent_chat_handler).route_layer(middleware::from_fn_with_state(
                 RouteControlGuardState {
                     app_state: state.clone(),
@@ -198,21 +180,13 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 require_route_enabled_middleware,
             )),
         )
-        .route(APIRouter::PROXY_CHAT_CHECK, get(proxy_chat_check_handler))
+        .route(APIRouter::CHAT_CHECK, get(proxy_chat_check_handler))
         .route(
             APIRouter::RAG_SOURCE_FILE,
             get(public_rag_document_file_handler),
         )
         .route(
-            APIRouter::LEGACY_RAG_SOURCE_FILE,
-            get(public_rag_document_file_handler),
-        )
-        .route(
             APIRouter::RAG_SOURCE_PREVIEW,
-            get(public_rag_document_preview_handler),
-        )
-        .route(
-            APIRouter::LEGACY_RAG_SOURCE_PREVIEW,
             get(public_rag_document_preview_handler),
         )
         .route(
@@ -285,4 +259,198 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 }),
         )
         .with_state(state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Method, Request, StatusCode},
+    };
+    use serde_json::json;
+    use sqlx::postgres::PgPoolOptions;
+    use std::fs;
+    use tower::util::ServiceExt;
+
+    fn test_app() -> Router {
+        let db = PgPoolOptions::new()
+            .connect_lazy("postgres://postgres:postgres@127.0.0.1:5432/healthy_diet_test")
+            .expect("lazy pool should be created");
+
+        let state = Arc::new(AppState {
+            db,
+            ai_prompt_config: json!({}),
+        });
+
+        create_app(state)
+    }
+
+    #[tokio::test]
+    async fn documented_runtime_routes_exist() {
+        let app = test_app();
+
+        let chat_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/chat")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(chat_response.status(), StatusCode::METHOD_NOT_ALLOWED);
+
+        let approve_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/approve")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(approve_response.status(), StatusCode::METHOD_NOT_ALLOWED);
+
+        let chat_check_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/chat_check")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(chat_check_response.status(), StatusCode::METHOD_NOT_ALLOWED);
+
+        let announcements_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/announcements/current")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            announcements_response.status(),
+            StatusCode::METHOD_NOT_ALLOWED
+        );
+
+        let admin_login_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/auth/admin/login")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            admin_login_response.status(),
+            StatusCode::METHOD_NOT_ALLOWED
+        );
+
+        let admin_me_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/admin/me")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_ne!(admin_me_response.status(), StatusCode::NOT_FOUND);
+
+        let gemma_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/gemma4/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(gemma_response.status(), StatusCode::METHOD_NOT_ALLOWED);
+
+        let openapi_response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/openapi.yml")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(openapi_response.status(), StatusCode::OK);
+        assert_eq!(
+            openapi_response
+                .headers()
+                .get(axum::http::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some("application/yaml; charset=utf-8")
+        );
+    }
+
+    #[test]
+    fn openapi_documents_actual_runtime_routes() {
+        let openapi = fs::read_to_string("openapi.yml").expect("openapi.yml should be readable");
+
+        for path in [
+            "/auth/admin/login",
+            "/admin/me",
+            "/gemma4/health",
+            "/openapi.yml",
+            "/chat",
+            "/chat_check",
+            "/approve",
+            "/announcements/current",
+            "/news",
+            "/news/sync",
+            "/rag/search",
+            "/admin/rag/documents",
+            "/rag/sources/{document_id}/file",
+        ] {
+            assert!(
+                openapi.contains(path),
+                "expected openapi.yml to document {path}"
+            );
+        }
+
+        assert!(
+            openapi.contains("name: document_id"),
+            "expected openapi.yml to use document_id path parameters"
+        );
+
+        for stale_path in [
+            "/api/chat",
+            "/api/approve",
+            "/api/announcements/current",
+            "/api/news",
+            "/api/news/sync",
+            "/api/rag/search",
+            "/api/admin/rag/documents",
+            "/proxy_chat_check",
+        ] {
+            assert!(
+                !openapi.contains(stale_path),
+                "did not expect openapi.yml to document stale alias {stale_path}"
+            );
+        }
+    }
 }

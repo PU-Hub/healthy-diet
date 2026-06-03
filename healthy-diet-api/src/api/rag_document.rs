@@ -235,11 +235,11 @@ fn rewrite_admin_document_urls(value: &mut Value) {
 
     object.insert(
         "fileUrl".to_string(),
-        Value::String(format!("/api/admin/rag/documents/{document_id}/file")),
+        Value::String(format!("/admin/rag/documents/{document_id}/file")),
     );
     object.insert(
         "previewUrl".to_string(),
-        Value::String(format!("/api/admin/rag/documents/{document_id}/preview")),
+        Value::String(format!("/admin/rag/documents/{document_id}/preview")),
     );
 }
 
@@ -253,11 +253,11 @@ fn rewrite_public_source_urls(value: &mut Value) {
 
     object.insert(
         "fileUrl".to_string(),
-        Value::String(format!("/api/rag/sources/{document_id}/file")),
+        Value::String(format!("/rag/sources/{document_id}/file")),
     );
     object.insert(
         "previewUrl".to_string(),
-        Value::String(format!("/api/rag/sources/{document_id}/preview")),
+        Value::String(format!("/rag/sources/{document_id}/preview")),
     );
 }
 

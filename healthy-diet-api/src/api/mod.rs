@@ -12,6 +12,7 @@ pub mod gemma4;
 pub mod health;
 pub mod login;
 pub mod model;
+pub mod openapi;
 pub mod ping;
 pub mod proxy_chat;
 pub mod rag_document;

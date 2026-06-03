@@ -32,6 +32,19 @@ paths:
                 type: string
                 example: Connect Success!
 
+  /openapi.yml:
+    get:
+      tags: [System]
+      summary: Get OpenAPI YAML document
+      operationId: getOpenApiYaml
+      responses:
+        '200':
+          description: OpenAPI specification in YAML format
+          content:
+            application/yaml:
+              schema:
+                type: string
+
   /ping:
     get:
       tags: [System]
@@ -57,6 +70,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+
+  /gemma4/health:
+    get:
+      tags: [System]
+      summary: Check local Gemma4 service reachability
+      operationId: gemma4HealthCheck
+      responses:
+        '200':
+          description: Gemma4 service is reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gemma4HealthResponse'
+        '503':
+          description: Gemma4 service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gemma4HealthResponse'
 
   /auth/discord/login:
     get:
@@ -148,6 +180,43 @@ paths:
                 $ref: '#/components/schemas/AuthResponse'
         '401':
           description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/admin/login:
+    post:
+      tags: [Authentication]
+      summary: Login as admin/operator
+      operationId: adminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+      responses:
+        '200':
+          description: Admin login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authenticated user is not an admin
           content:
             application/json:
               schema:
@@ -454,11 +523,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /proxy_chat_check:
+  /chat_check:
     get:
       tags: [Chat]
       summary: Check downstream chat agent availability
-      operationId: proxyChatCheck
+      operationId: chatCheck
       responses:
         '200':
           description: Agent is reachable
@@ -479,11 +548,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProxyChatCheckResponse'
 
-  /proxy_chat:
+  /chat:
     post:
       tags: [Chat]
       summary: Proxy chat request to agent service (SSE)
-      operationId: proxyChat
+      operationId: chat
       security:
         - bearerAuth: []
       requestBody:
@@ -519,7 +588,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /agent_approve:
+  /approve:
     post:
       tags: [Admin]
       summary: Approve or reject downstream agent action
@@ -553,7 +622,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/news/sync:
+  /announcements/current:
+    get:
+      tags: [Knowledge]
+      summary: Get the latest published public announcement
+      operationId: getCurrentAnnouncement
+      responses:
+        '200':
+          description: Current published announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentAnnouncementResponse'
+        '404':
+          description: No published announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /news/sync:
     post:
       tags: [Knowledge]
       summary: Trigger downstream FDA news sync
@@ -578,7 +672,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/news:
+  /news:
     get:
       tags: [Knowledge]
       summary: Get paginated local news list
@@ -617,7 +711,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/news/{id}:
+  /news/{id}:
     get:
       tags: [Knowledge]
       summary: Get one local news article
@@ -654,7 +748,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/news-files:
+  /news-files:
     get:
       tags: [Knowledge]
       summary: List local news markdown files
@@ -679,7 +773,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/rag/search:
+  /rag/search:
     get:
       tags: [Knowledge]
       summary: Search local knowledge corpus
@@ -756,7 +850,469 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/admin/rag/documents:
+  /admin/me:
+    get:
+      tags: [Admin]
+      summary: Get current admin identity
+      operationId: adminMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current admin profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List admin-visible users
+      operationId: adminListUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUserListItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{user_id}:
+    get:
+      tags: [Admin]
+      summary: Get one user detail for admin console
+      operationId: adminGetUserDetail
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/route-controls:
+    get:
+      tags: [Admin]
+      summary: List route control flags
+      operationId: adminListRouteControls
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Route control list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RouteControlItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/route-controls/{route_key}:
+    patch:
+      tags: [Admin]
+      summary: Update one route control flag
+      operationId: adminUpdateRouteControl
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: route_key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRouteControlPayload'
+      responses:
+        '200':
+          description: Updated route control
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteControlItem'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/announcements:
+    get:
+      tags: [Admin]
+      summary: List announcements for admin console
+      operationId: adminListAnnouncements
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        '200':
+          description: Announcement list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnnouncementItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Admin]
+      summary: Create announcement
+      operationId: adminCreateAnnouncement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAnnouncementPayload'
+      responses:
+        '200':
+          description: Created announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementItem'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/announcements/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update announcement
+      operationId: adminUpdateAnnouncement
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAnnouncementPayload'
+      responses:
+        '200':
+          description: Updated announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementItem'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Announcement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/announcements/{id}/publish:
+    post:
+      tags: [Admin]
+      summary: Publish announcement
+      operationId: adminPublishAnnouncement
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Published announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Announcement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/announcements/{id}/archive:
+    post:
+      tags: [Admin]
+      summary: Archive announcement
+      operationId: adminArchiveAnnouncement
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Archived announcement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnouncementItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Announcement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/rag/documents:
     get:
       tags: [Admin]
       summary: List RAG documents
@@ -838,7 +1394,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/admin/rag/documents/{document_id}:
+  /admin/rag/documents/{document_id}:
     get:
       tags: [Admin]
       summary: Get RAG document detail
@@ -879,7 +1435,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -904,7 +1460,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/admin/rag/documents/{document_id}/reindex:
+  /admin/rag/documents/{document_id}/reindex:
     post:
       tags: [Admin]
       summary: Requeue a RAG document for indexing
@@ -938,7 +1494,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/admin/rag/documents/{document_id}/file:
+  /admin/rag/documents/{document_id}/file:
     get:
       tags: [Admin]
       summary: Open original RAG document file
@@ -983,7 +1539,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/admin/rag/documents/{document_id}/preview:
+  /admin/rag/documents/{document_id}/preview:
     get:
       tags: [Admin]
       summary: Preview RAG document content
@@ -1017,7 +1573,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/rag/sources/{document_id}/file:
+  /rag/sources/{document_id}/file:
     get:
       tags: [Knowledge]
       summary: Open a RAG source file for end users
@@ -1054,7 +1610,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/rag/sources/{document_id}/preview:
+  /rag/sources/{document_id}/preview:
     get:
       tags: [Knowledge]
       summary: Preview a RAG source for end users
@@ -1254,7 +1810,7 @@ components:
 
     UserProfile:
       type: object
-      required: [id, email]
+      required: [id, email, role]
       properties:
         id:
           type: string
@@ -1268,6 +1824,9 @@ components:
         avatar_url:
           type: string
           nullable: true
+        role:
+          type: string
+          enum: [user, operator, super_admin]
 
     AuthResponse:
       type: object
@@ -1582,6 +2141,147 @@ components:
           nullable: true
         pingResponse:
           type: string
+          nullable: true
+
+    Gemma4HealthResponse:
+      type: object
+      required: [targetUrl, model, running, message]
+      properties:
+        targetUrl:
+          type: string
+        model:
+          type: string
+        running:
+          type: boolean
+        httpStatusCode:
+          type: integer
+          nullable: true
+        message:
+          type: string
+
+    CurrentAnnouncementResponse:
+      type: object
+      required: [id, title, content, publishedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+
+    AdminUserListItem:
+      type: object
+      required: [id, email, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        nickname:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [user, operator, super_admin]
+
+    RouteControlItem:
+      type: object
+      required: [routeKey, isEnabled, isProtected]
+      properties:
+        routeKey:
+          type: string
+        isEnabled:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+        isProtected:
+          type: boolean
+        updatedBy:
+          type: string
+          format: uuid
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    UpdateRouteControlPayload:
+      type: object
+      required: [isEnabled]
+      properties:
+        isEnabled:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+
+    AnnouncementItem:
+      type: object
+      required: [id, title, content, status, createdBy, updatedBy, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdBy:
+          type: string
+          format: uuid
+        updatedBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateAnnouncementPayload:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+          nullable: true
+
+    UpdateAnnouncementPayload:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, archived]
           nullable: true
 
     AgentChatRequest:
