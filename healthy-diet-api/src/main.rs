@@ -8,6 +8,8 @@ use std::fs;
 use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+const DEFAULT_LOG_FILTER: &str = "info,sqlx=warn";
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
@@ -15,7 +17,7 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "debug".into()),
+                .unwrap_or_else(|_| DEFAULT_LOG_FILTER.into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();

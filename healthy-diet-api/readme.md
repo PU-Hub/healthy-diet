@@ -42,7 +42,7 @@
 | `DISCORD_CLIENT_ID` | `string` | Discord Developer Portal 提供的 Client ID |
 | `DISCORD_CLIENT_SECRET` | `string` | Discord Developer Portal 提供的 Client Secret |
 | `DISCORD_REDIRECT_URL` | `string` | Discord OAuth 回調網址 (例: `http://localhost:3000/api/auth/discord/callback`) |
-| `RUST_LOG` | `string` | 日誌等級 (例: `debug`, `info`, `healthy_diet_api=debug`) |
+| `RUST_LOG` | `string` | 日誌等級 (例: `info`, `debug`, `sqlx=warn`；未設定時預設為 `info,sqlx=warn`) |
 
 ## 安裝與建制 (Installation & Build)
 
