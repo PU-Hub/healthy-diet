@@ -21,6 +21,7 @@ RUN --mount=type=bind,source=healthy-diet-api/src,target=src \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
+    --mount=type=bind,source=healthy-diet-api/openapi.yml,target=openapi.yml \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
