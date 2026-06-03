@@ -178,6 +178,29 @@ async fn mark_job_ready(
     }
 }
 
+async fn mark_job_failed(pool: &PgPool, id: Uuid, error_message: &str) {
+    if let Err(e) = sqlx::query(
+        r#"
+        UPDATE rag_documents
+        SET status = $1,
+            next_retry_at = NULL,
+            processing_started_at = NULL,
+            last_error_at = now(),
+            error_message = $2,
+            updated_at = now()
+        WHERE id = $3
+        "#,
+    )
+    .bind(STATUS_FAILED)
+    .bind(error_message)
+    .bind(id)
+    .execute(pool)
+    .await
+    {
+        error!("Failed to mark RAG job {} as failed: {:?}", id, e);
+    }
+}
+
 async fn schedule_retry_or_fail(pool: &PgPool, id: Uuid, error_message: &str, cfg: WorkerConfig) {
     let retry_count = sqlx::query_scalar::<_, i32>(
         r#"
@@ -226,29 +249,14 @@ async fn schedule_retry_or_fail(pool: &PgPool, id: Uuid, error_message: &str, cf
             return;
         }
         warn!(
-            "RAG job {} failed, scheduled retry #{}/{} in {}s",
-            id, retry_count, cfg.max_retries, delay_secs
+            "RAG job {} failed, scheduled retry #{}/{} in {}s: {}",
+            id, retry_count, cfg.max_retries, delay_secs, error_message
         );
-    } else if let Err(e) = sqlx::query(
-        r#"
-        UPDATE rag_documents
-        SET status = $1,
-            next_retry_at = NULL,
-            processing_started_at = NULL,
-            updated_at = now()
-        WHERE id = $2
-        "#,
-    )
-    .bind(STATUS_FAILED)
-    .bind(id)
-    .execute(pool)
-    .await
-    {
-        error!("Failed to mark RAG job {} as failed: {:?}", id, e);
     } else {
+        mark_job_failed(pool, id, error_message).await;
         warn!(
-            "RAG job {} reached max retries ({}) and is marked failed",
-            id, cfg.max_retries
+            "RAG job {} reached max retries ({}) and is marked failed: {}",
+            id, cfg.max_retries, error_message
         );
     }
 }
@@ -282,6 +290,11 @@ async fn process_job(
         absolute_path: full_path.to_string_lossy().to_string(),
         embedding_model: job.embedding_model,
     };
+
+    info!(
+        "RAG worker sending job {} to agent endpoint {}",
+        job.id, process_url
+    );
 
     let resp = client
         .post(process_url)
@@ -320,13 +333,18 @@ async fn process_job(
     };
 
     if !http_status.is_success() {
-        schedule_retry_or_fail(
-            pool,
-            job.id,
-            &format!("Agent returned {}: {}", http_status.as_u16(), resp_text),
-            cfg,
-        )
-        .await;
+        let error_message = format!("Agent returned {}: {}", http_status.as_u16(), resp_text);
+        error!(
+            "RAG agent non-success for job {} endpoint {}: {}",
+            job.id, process_url, error_message
+        );
+
+        if http_status.is_client_error() && http_status.as_u16() != 408 && http_status.as_u16() != 429
+        {
+            mark_job_failed(pool, job.id, &error_message).await;
+        } else {
+            schedule_retry_or_fail(pool, job.id, &error_message, cfg).await;
+        }
         return;
     }
 
