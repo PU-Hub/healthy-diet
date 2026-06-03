@@ -756,7 +756,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /admin/rag/documents:
+  /api/admin/rag/documents:
     get:
       tags: [Admin]
       summary: List RAG documents
@@ -838,7 +838,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /admin/rag/documents/{id}:
+  /api/admin/rag/documents/{document_id}:
     get:
       tags: [Admin]
       summary: Get RAG document detail
@@ -847,7 +847,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -904,7 +904,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /admin/rag/documents/{id}/reindex:
+  /api/admin/rag/documents/{document_id}/reindex:
     post:
       tags: [Admin]
       summary: Requeue a RAG document for indexing
@@ -913,7 +913,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -938,7 +938,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /admin/rag/documents/{id}/file:
+  /api/admin/rag/documents/{document_id}/file:
     get:
       tags: [Admin]
       summary: Open original RAG document file
@@ -947,7 +947,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -983,7 +983,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /admin/rag/documents/{id}/preview:
+  /api/admin/rag/documents/{document_id}/preview:
     get:
       tags: [Admin]
       summary: Preview RAG document content
@@ -992,7 +992,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -1017,16 +1017,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /rag/sources/{id}/file:
+  /api/rag/sources/{document_id}/file:
     get:
-      tags: [Chat]
+      tags: [Knowledge]
       summary: Open a RAG source file for end users
       operationId: getRagSourceFile
-      security:
-        - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -1049,12 +1047,6 @@ paths:
               schema:
                 type: string
                 format: binary
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Document not found
           content:
@@ -1062,16 +1054,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /rag/sources/{id}/preview:
+  /api/rag/sources/{document_id}/preview:
     get:
-      tags: [Chat]
+      tags: [Knowledge]
       summary: Preview a RAG source for end users
       operationId: getRagSourcePreview
-      security:
-        - bearerAuth: []
       parameters:
         - in: path
-          name: id
+          name: document_id
           required: true
           schema:
             type: string
@@ -1083,12 +1073,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RagDocumentPreviewResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Document not found
           content:
@@ -1727,14 +1711,12 @@ components:
 
     RagDocumentItem:
       type: object
-      required: [id, filename, storagePath, mimeType, sizeBytes, status, retryCount, uploadedBy, createdAt, updatedAt, fileUrl, previewUrl]
+      required: [id, filename, mimeType, sizeBytes, status, createdAt, updatedAt, fileUrl, previewUrl]
       properties:
         id:
           type: string
           format: uuid
         filename:
-          type: string
-        storagePath:
           type: string
         mimeType:
           type: string
@@ -1753,23 +1735,6 @@ components:
         errorMessage:
           type: string
           nullable: true
-        retryCount:
-          type: integer
-        nextRetryAt:
-          type: string
-          format: date-time
-          nullable: true
-        processingStartedAt:
-          type: string
-          format: date-time
-          nullable: true
-        lastErrorAt:
-          type: string
-          format: date-time
-          nullable: true
-        uploadedBy:
-          type: string
-          format: uuid
         createdAt:
           type: string
           format: date-time

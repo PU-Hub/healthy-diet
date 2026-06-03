@@ -51,8 +51,8 @@ use axum::{
     routing::{get, post},
 };
 use std::{sync::Arc, time::Duration};
-use tracing::{Span, field::Empty};
 use tower_http::trace::TraceLayer;
+use tracing::{Span, field::Empty};
 
 pub fn create_app(state: Arc<AppState>) -> Router {
     let admin_router = Router::new()
@@ -87,8 +87,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             APIRouter::ADMIN_ANNOUNCEMENT_ARCHIVE,
             post(archive_announcement_handler),
         )
+        .route_layer(middleware::from_fn(require_admin_middleware));
+
+    let rag_admin_router = Router::new()
         .route(
             APIRouter::ADMIN_RAG_DOCUMENTS,
+            get(admin_rag_documents_handler).post(admin_rag_upload_handler),
+        )
+        .route(
+            APIRouter::LEGACY_ADMIN_RAG_DOCUMENTS,
             get(admin_rag_documents_handler).post(admin_rag_upload_handler),
         )
         .route(
@@ -96,7 +103,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(admin_rag_document_detail_handler).delete(admin_rag_delete_handler),
         )
         .route(
+            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_DETAIL,
+            get(admin_rag_document_detail_handler).delete(admin_rag_delete_handler),
+        )
+        .route(
             APIRouter::ADMIN_RAG_DOCUMENT_REINDEX,
+            post(admin_rag_reindex_handler),
+        )
+        .route(
+            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_REINDEX,
             post(admin_rag_reindex_handler),
         )
         .route(
@@ -104,7 +119,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(admin_rag_document_file_handler),
         )
         .route(
+            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_FILE,
+            get(admin_rag_document_file_handler),
+        )
+        .route(
             APIRouter::ADMIN_RAG_DOCUMENT_PREVIEW,
+            get(admin_rag_document_preview_handler),
+        )
+        .route(
+            APIRouter::LEGACY_ADMIN_RAG_DOCUMENT_PREVIEW,
             get(admin_rag_document_preview_handler),
         )
         .route_layer(middleware::from_fn(require_admin_middleware));
@@ -181,7 +204,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(public_rag_document_file_handler),
         )
         .route(
+            APIRouter::LEGACY_RAG_SOURCE_FILE,
+            get(public_rag_document_file_handler),
+        )
+        .route(
             APIRouter::RAG_SOURCE_PREVIEW,
+            get(public_rag_document_preview_handler),
+        )
+        .route(
+            APIRouter::LEGACY_RAG_SOURCE_PREVIEW,
             get(public_rag_document_preview_handler),
         )
         .route(
@@ -199,6 +230,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             APIRouter::ROOM_HISTORY_BY_INDEX,
             get(get_room_history_by_index_handler),
         )
+        .merge(rag_admin_router)
         .nest(APIRouter::ADMIN, admin_router)
         .layer(DefaultBodyLimit::max(25 * 1024 * 1024))
         .layer(

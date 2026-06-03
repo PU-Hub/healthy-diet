@@ -27,11 +27,18 @@ impl APIRouter {
     pub const ADMIN_ANNOUNCEMENT_DETAIL: &'static str = "/announcements/{id}";
     pub const ADMIN_ANNOUNCEMENT_PUBLISH: &'static str = "/announcements/{id}/publish";
     pub const ADMIN_ANNOUNCEMENT_ARCHIVE: &'static str = "/announcements/{id}/archive";
-    pub const ADMIN_RAG_DOCUMENTS: &'static str = "/rag/documents";
-    pub const ADMIN_RAG_DOCUMENT_DETAIL: &'static str = "/rag/documents/{id}";
-    pub const ADMIN_RAG_DOCUMENT_REINDEX: &'static str = "/rag/documents/{id}/reindex";
-    pub const ADMIN_RAG_DOCUMENT_FILE: &'static str = "/rag/documents/{id}/file";
-    pub const ADMIN_RAG_DOCUMENT_PREVIEW: &'static str = "/rag/documents/{id}/preview";
+    pub const ADMIN_RAG_DOCUMENTS: &'static str = "/api/admin/rag/documents";
+    pub const ADMIN_RAG_DOCUMENT_DETAIL: &'static str = "/api/admin/rag/documents/{document_id}";
+    pub const ADMIN_RAG_DOCUMENT_REINDEX: &'static str =
+        "/api/admin/rag/documents/{document_id}/reindex";
+    pub const ADMIN_RAG_DOCUMENT_FILE: &'static str = "/api/admin/rag/documents/{document_id}/file";
+    pub const ADMIN_RAG_DOCUMENT_PREVIEW: &'static str =
+        "/api/admin/rag/documents/{document_id}/preview";
+    pub const LEGACY_ADMIN_RAG_DOCUMENTS: &'static str = "/admin/rag/documents";
+    pub const LEGACY_ADMIN_RAG_DOCUMENT_DETAIL: &'static str = "/admin/rag/documents/{id}";
+    pub const LEGACY_ADMIN_RAG_DOCUMENT_REINDEX: &'static str = "/admin/rag/documents/{id}/reindex";
+    pub const LEGACY_ADMIN_RAG_DOCUMENT_FILE: &'static str = "/admin/rag/documents/{id}/file";
+    pub const LEGACY_ADMIN_RAG_DOCUMENT_PREVIEW: &'static str = "/admin/rag/documents/{id}/preview";
     pub const ADMIN_AGENT_TOKEN: &'static str = "/agent-token";
     pub const NEWS_SYNC: &'static str = "/api/news/sync";
     pub const NEWS: &'static str = "/api/news";
@@ -39,8 +46,10 @@ impl APIRouter {
     pub const NEWS_FILES: &'static str = "/api/news-files";
     pub const RAG_SEARCH: &'static str = "/api/rag/search";
     pub const ANNOUNCEMENTS_CURRENT: &'static str = "/announcements/current";
-    pub const RAG_SOURCE_FILE: &'static str = "/rag/sources/{id}/file";
-    pub const RAG_SOURCE_PREVIEW: &'static str = "/rag/sources/{id}/preview";
+    pub const RAG_SOURCE_FILE: &'static str = "/api/rag/sources/{document_id}/file";
+    pub const RAG_SOURCE_PREVIEW: &'static str = "/api/rag/sources/{document_id}/preview";
+    pub const LEGACY_RAG_SOURCE_FILE: &'static str = "/rag/sources/{id}/file";
+    pub const LEGACY_RAG_SOURCE_PREVIEW: &'static str = "/rag/sources/{id}/preview";
     pub const PROFILE: &'static str = "/user/profile";
     pub const AI_CONSULT: &'static str = "/consult";
     pub const DIET: &'static str = "/diet";

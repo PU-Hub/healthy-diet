@@ -339,7 +339,9 @@ async fn process_job(
             job.id, process_url, error_message
         );
 
-        if http_status.is_client_error() && http_status.as_u16() != 408 && http_status.as_u16() != 429
+        if http_status.is_client_error()
+            && http_status.as_u16() != 408
+            && http_status.as_u16() != 429
         {
             mark_job_failed(pool, job.id, &error_message).await;
         } else {
