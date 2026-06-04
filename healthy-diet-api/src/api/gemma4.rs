@@ -3,6 +3,8 @@ use reqwest::Client;
 use serde::Serialize;
 use std::time::Duration;
 
+const DEFAULT_GEMMA4_TARGET_URL: &str = "http://host.docker.internal:8080";
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Gemma4HealthResponse {
@@ -13,8 +15,12 @@ pub struct Gemma4HealthResponse {
     pub message: String,
 }
 
+fn gemma4_target_url() -> &'static str {
+    DEFAULT_GEMMA4_TARGET_URL
+}
+
 pub async fn gemma4_health_handler() -> (StatusCode, Json<Gemma4HealthResponse>) {
-    let target_url = "http://127.0.0.1:8080";
+    let target_url = gemma4_target_url();
     let client = Client::new();
 
     match client
@@ -30,7 +36,7 @@ pub async fn gemma4_health_handler() -> (StatusCode, Json<Gemma4HealthResponse>)
                 model: "gemma4".to_string(),
                 running: true,
                 http_status_code: Some(response.status().as_u16()),
-                message: "gemma4 service is reachable on localhost:8080".to_string(),
+                message: "gemma4 service is reachable on host.docker.internal:8080".to_string(),
             }),
         ),
         Err(error) => (
@@ -40,8 +46,23 @@ pub async fn gemma4_health_handler() -> (StatusCode, Json<Gemma4HealthResponse>)
                 model: "gemma4".to_string(),
                 running: false,
                 http_status_code: None,
-                message: format!("cannot reach gemma4 service on localhost:8080: {}", error),
+                message: format!(
+                    "cannot reach gemma4 service on host.docker.internal:8080: {}",
+                    error
+                ),
             }),
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn health_handler_uses_docker_host_default_url() {
+        let (_, Json(response)) = gemma4_health_handler().await;
+
+        assert_eq!(response.target_url, DEFAULT_GEMMA4_TARGET_URL);
     }
 }
