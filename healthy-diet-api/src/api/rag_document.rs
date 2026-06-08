@@ -108,7 +108,7 @@ async fn read_json_response(
     Ok((status, response_json))
 }
 
-async fn send_json_request(
+pub(crate) async fn send_json_request(
     headers: &HeaderMap,
     admin_user: Option<&AuthUser>,
     method: Method,

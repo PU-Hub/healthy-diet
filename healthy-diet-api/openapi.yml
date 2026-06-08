@@ -850,6 +850,101 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/knowledge-graph/query:
+    post:
+      tags: [Knowledge]
+      summary: Query a focused knowledge graph subgraph
+      operationId: knowledgeGraphQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeGraphQueryRequest'
+      responses:
+        '200':
+          description: Knowledge graph query result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphQueryResponse'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/knowledge-graph/nodes/{node_id}:
+    get:
+      tags: [Knowledge]
+      summary: Get one knowledge graph node with neighbors and evidence
+      operationId: knowledgeGraphNodeDetail
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: URL-encoded node identifier such as `food%3Abroccoli`
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge graph node detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphNodeDetailResponse'
+        '404':
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/knowledge-graph/relations/{relation_id}/evidence:
+    get:
+      tags: [Knowledge]
+      summary: Get one relation with supporting evidence
+      operationId: knowledgeGraphRelationEvidence
+      parameters:
+        - in: path
+          name: relation_id
+          required: true
+          description: URL-encoded relation identifier such as `food%3Abroccoli%7Ccontains%7Cnutrient%3Afiber`
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge graph relation evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphRelationEvidenceResponse'
+        '404':
+          description: Relation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /admin/me:
     get:
       tags: [Admin]
@@ -1568,6 +1663,92 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/knowledge-graph/documents/{document_id}:
+    get:
+      tags: [Admin]
+      summary: Get one extracted knowledge graph document
+      operationId: adminGetKnowledgeGraphDocument
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: document_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Extracted knowledge graph document detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphDocumentDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/knowledge-graph/documents/{document_id}/extract:
+    post:
+      tags: [Admin]
+      summary: Extract or refresh one knowledge graph document
+      operationId: adminExtractKnowledgeGraphDocument
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: document_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeGraphExtractRequest'
+      responses:
+        '200':
+          description: Extraction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphExtractResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
           content:
             application/json:
               schema:
@@ -2639,6 +2820,230 @@ components:
                 type: array
                 items:
                   type: string
+
+    KnowledgeGraphQueryRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+        max_nodes:
+          type: integer
+          format: int64
+          minimum: 1
+        source_types:
+          type: array
+          items:
+            type: string
+            enum: [nutrition_rules, mohw_news, uploaded_knowledge]
+        document_ids:
+          type: array
+          items:
+            type: string
+
+    KnowledgeGraphNode:
+      type: object
+      required: [id, label, node_type, aliases, document_ids, source_types]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        node_type:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+        document_ids:
+          type: array
+          items:
+            type: string
+        source_types:
+          type: array
+          items:
+            type: string
+
+    KnowledgeGraphEdge:
+      type: object
+      required: [id, source, target, relation_type, confidence, document_ids, evidence_ids]
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+        relation_type:
+          type: string
+        confidence:
+          type: number
+          format: double
+        document_ids:
+          type: array
+          items:
+            type: string
+        evidence_ids:
+          type: array
+          items:
+            type: string
+
+    KnowledgeGraphEvidence:
+      type: object
+      required: [id, edge_id, document_id, document_title, source_type, source_path, snippet]
+      properties:
+        id:
+          type: string
+        edge_id:
+          type: string
+        document_id:
+          type: string
+        document_title:
+          type: string
+        source_type:
+          type: string
+        source_path:
+          type: string
+        snippet:
+          type: string
+
+    KnowledgeGraphDocument:
+      type: object
+      required: [id, title, source_type, source_path, content_hash, extracted_at, node_ids, edge_ids, evidence_ids]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        source_type:
+          type: string
+        source_path:
+          type: string
+        content_hash:
+          type: string
+        extracted_at:
+          type: string
+        node_ids:
+          type: array
+          items:
+            type: string
+        edge_ids:
+          type: array
+          items:
+            type: string
+        evidence_ids:
+          type: array
+          items:
+            type: string
+
+    KnowledgeGraphQueryResponse:
+      type: object
+      required: [ok, query, nodes, edges, evidence, documents]
+      properties:
+        ok:
+          type: boolean
+        query:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEdge'
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEvidence'
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphDocument'
+
+    KnowledgeGraphNodeDetailResponse:
+      type: object
+      required: [ok, node, edges, neighbors, evidence]
+      properties:
+        ok:
+          type: boolean
+        node:
+          $ref: '#/components/schemas/KnowledgeGraphNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEdge'
+        neighbors:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphNode'
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEvidence'
+
+    KnowledgeGraphRelationEvidenceResponse:
+      type: object
+      required: [ok, relation, evidence]
+      properties:
+        ok:
+          type: boolean
+        relation:
+          $ref: '#/components/schemas/KnowledgeGraphEdge'
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEvidence'
+
+    KnowledgeGraphExtractRequest:
+      type: object
+      properties:
+        force:
+          type: boolean
+
+    KnowledgeGraphExtractResponse:
+      type: object
+      required: [ok, cached, document, nodes, edges, evidence]
+      properties:
+        ok:
+          type: boolean
+        cached:
+          type: boolean
+        document:
+          $ref: '#/components/schemas/KnowledgeGraphDocument'
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEdge'
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEvidence'
+
+    KnowledgeGraphDocumentDetailResponse:
+      type: object
+      description: Rust currently forwards the upstream document detail JSON as-is.
+      properties:
+        ok:
+          type: boolean
+        document:
+          $ref: '#/components/schemas/KnowledgeGraphDocument'
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEdge'
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphEvidence'
 
     HealthResponse:
       type: object

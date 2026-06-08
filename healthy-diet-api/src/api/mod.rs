@@ -10,6 +10,7 @@ pub mod diet_image;
 pub mod diet_record;
 pub mod gemma4;
 pub mod health;
+pub mod knowledge_graph;
 pub mod login;
 pub mod model;
 pub mod openapi;

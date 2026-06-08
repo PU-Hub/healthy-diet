@@ -23,6 +23,11 @@ use crate::{
         diet_record::diet_records_handler,
         gemma4::gemma4_health_handler,
         health::healthy_server_handler,
+        knowledge_graph::{
+            admin_knowledge_graph_document_detail_handler, admin_knowledge_graph_extract_handler,
+            knowledge_graph_node_detail_handler, knowledge_graph_query_handler,
+            knowledge_graph_relation_evidence_handler,
+        },
         login::{admin_login_handler, login_handler},
         openapi::openapi_yaml_handler,
         ping::ping_handler,
@@ -111,6 +116,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             APIRouter::ADMIN_RAG_DOCUMENT_PREVIEW,
             get(admin_rag_document_preview_handler),
         )
+        .route(
+            APIRouter::ADMIN_KNOWLEDGE_GRAPH_DOCUMENT_DETAIL,
+            get(admin_knowledge_graph_document_detail_handler),
+        )
+        .route(
+            APIRouter::ADMIN_KNOWLEDGE_GRAPH_DOCUMENT_EXTRACT,
+            post(admin_knowledge_graph_extract_handler),
+        )
         .route_layer(middleware::from_fn(require_admin_middleware));
 
     Router::new()
@@ -169,6 +182,18 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             APIRouter::RAG_SEARCH,
             get(rag_search_get_handler).post(rag_search_post_handler),
+        )
+        .route(
+            APIRouter::KNOWLEDGE_GRAPH_QUERY,
+            post(knowledge_graph_query_handler),
+        )
+        .route(
+            APIRouter::KNOWLEDGE_GRAPH_NODE_DETAIL,
+            get(knowledge_graph_node_detail_handler),
+        )
+        .route(
+            APIRouter::KNOWLEDGE_GRAPH_RELATION_EVIDENCE,
+            get(knowledge_graph_relation_evidence_handler),
         )
         .route(
             APIRouter::CHAT,
