@@ -25,8 +25,9 @@ use crate::{
         health::healthy_server_handler,
         knowledge_graph::{
             admin_knowledge_graph_document_detail_handler, admin_knowledge_graph_extract_handler,
-            knowledge_graph_node_detail_handler, knowledge_graph_query_handler,
-            knowledge_graph_relation_evidence_handler,
+            admin_knowledge_graph_rebuild_handler, knowledge_graph_node_detail_handler,
+            knowledge_graph_nodes_handler, knowledge_graph_query_handler,
+            knowledge_graph_relation_evidence_handler, knowledge_graph_status_handler,
         },
         login::{admin_login_handler, login_handler},
         openapi::openapi_yaml_handler,
@@ -117,6 +118,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(admin_rag_document_preview_handler),
         )
         .route(
+            APIRouter::ADMIN_KNOWLEDGE_GRAPH_REBUILD,
+            post(admin_knowledge_graph_rebuild_handler),
+        )
+        .route(
             APIRouter::ADMIN_KNOWLEDGE_GRAPH_DOCUMENT_DETAIL,
             get(admin_knowledge_graph_document_detail_handler),
         )
@@ -182,6 +187,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             APIRouter::RAG_SEARCH,
             get(rag_search_get_handler).post(rag_search_post_handler),
+        )
+        .route(
+            APIRouter::KNOWLEDGE_GRAPH_STATUS,
+            get(knowledge_graph_status_handler),
+        )
+        .route(
+            APIRouter::KNOWLEDGE_GRAPH_NODES,
+            get(knowledge_graph_nodes_handler),
         )
         .route(
             APIRouter::KNOWLEDGE_GRAPH_QUERY,
@@ -413,6 +426,7 @@ mod tests {
         assert_eq!(gemma_response.status(), StatusCode::METHOD_NOT_ALLOWED);
 
         let openapi_response = app
+            .clone()
             .oneshot(
                 Request::builder()
                     .method(Method::GET)
@@ -429,6 +443,54 @@ mod tests {
                 .get(axum::http::header::CONTENT_TYPE)
                 .and_then(|value| value.to_str().ok()),
             Some("application/yaml; charset=utf-8")
+        );
+
+        let knowledge_graph_status_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/knowledge-graph/status")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            knowledge_graph_status_response.status(),
+            StatusCode::METHOD_NOT_ALLOWED
+        );
+
+        let knowledge_graph_nodes_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/knowledge-graph/nodes")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            knowledge_graph_nodes_response.status(),
+            StatusCode::METHOD_NOT_ALLOWED
+        );
+
+        let admin_knowledge_graph_rebuild_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/api/admin/knowledge-graph/rebuild")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            admin_knowledge_graph_rebuild_response.status(),
+            StatusCode::UNAUTHORIZED
         );
     }
 
@@ -450,6 +512,11 @@ mod tests {
             "/rag/search",
             "/admin/rag/documents",
             "/rag/sources/{document_id}/file",
+            "/api/knowledge-graph/status",
+            "/api/knowledge-graph/nodes",
+            "/api/knowledge-graph/query",
+            "/api/admin/knowledge-graph/rebuild",
+            "/api/admin/knowledge-graph/documents/{document_id}",
         ] {
             assert!(
                 openapi.contains(path),
@@ -475,6 +542,26 @@ mod tests {
             assert!(
                 !openapi.contains(stale_path),
                 "did not expect openapi.yml to document stale alias {stale_path}"
+            );
+        }
+    }
+
+    #[test]
+    fn knowledge_graph_routes_are_documented_in_route_matrix() {
+        let route_matrix = fs::read_to_string("docs/api_route_matrix.md")
+            .expect("docs/api_route_matrix.md should be readable");
+
+        for path in [
+            "/api/knowledge-graph/status",
+            "/api/knowledge-graph/nodes",
+            "/api/knowledge-graph/query",
+            "/api/admin/knowledge-graph/rebuild",
+            "/api/admin/knowledge-graph/documents/{document_id}",
+            "/api/admin/knowledge-graph/documents/{document_id}/extract",
+        ] {
+            assert!(
+                route_matrix.contains(path),
+                "expected docs/api_route_matrix.md to document {path}"
             );
         }
     }

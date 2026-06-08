@@ -850,6 +850,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/knowledge-graph/status:
+    get:
+      tags: [Knowledge]
+      summary: Get global knowledge graph readiness and counts
+      operationId: knowledgeGraphStatus
+      responses:
+        '200':
+          description: Knowledge graph global status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphStatusResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/knowledge-graph/nodes:
+    get:
+      tags: [Knowledge]
+      summary: List knowledge graph nodes from the global graph cache
+      operationId: knowledgeGraphNodes
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 500
+            default: 100
+        - in: query
+          name: node_type
+          schema:
+            type: string
+        - in: query
+          name: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge graph node list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphNodesResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/knowledge-graph/query:
     post:
       tags: [Knowledge]
@@ -1668,6 +1723,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/admin/knowledge-graph/rebuild:
+    post:
+      tags: [Admin]
+      summary: Rebuild the global knowledge graph from current sources
+      operationId: adminRebuildKnowledgeGraph
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeGraphRebuildRequest'
+      responses:
+        '200':
+          description: Knowledge graph rebuild result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeGraphRebuildResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Downstream service unavailable or invalid response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/admin/knowledge-graph/documents/{document_id}:
     get:
       tags: [Admin]
@@ -1679,9 +1767,9 @@ paths:
         - in: path
           name: document_id
           required: true
+          description: Graph document identifier such as `doc-upload-1`
           schema:
             type: string
-            format: uuid
       responses:
         '200':
           description: Extracted knowledge graph document detail
@@ -1719,9 +1807,9 @@ paths:
         - in: path
           name: document_id
           required: true
+          description: Graph document identifier such as `doc-upload-1`
           schema:
             type: string
-            format: uuid
       requestBody:
         required: true
         content:
@@ -2821,6 +2909,59 @@ components:
                 items:
                   type: string
 
+    KnowledgeGraphSummary:
+      type: object
+      required: [document_count, node_count, edge_count, evidence_count, source_counts, generated_at]
+      properties:
+        document_count:
+          type: integer
+          format: int64
+        node_count:
+          type: integer
+          format: int64
+        edge_count:
+          type: integer
+          format: int64
+        evidence_count:
+          type: integer
+          format: int64
+        source_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        generated_at:
+          type: string
+          format: date-time
+
+    KnowledgeGraphStatusResponse:
+      type: object
+      required: [ok, ready, summary]
+      properties:
+        ok:
+          type: boolean
+        ready:
+          type: boolean
+        summary:
+          $ref: '#/components/schemas/KnowledgeGraphSummary'
+
+    KnowledgeGraphRebuildRequest:
+      type: object
+      properties:
+        force:
+          type: boolean
+
+    KnowledgeGraphRebuildResponse:
+      type: object
+      required: [ok, force, summary]
+      properties:
+        ok:
+          type: boolean
+        force:
+          type: boolean
+        summary:
+          $ref: '#/components/schemas/KnowledgeGraphSummary'
+
     KnowledgeGraphQueryRequest:
       type: object
       required: [query]
@@ -2960,6 +3101,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KnowledgeGraphDocument'
+
+    KnowledgeGraphNodesResponse:
+      type: object
+      required: [ok, total, items]
+      properties:
+        ok:
+          type: boolean
+        total:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/KnowledgeGraphNode'
 
     KnowledgeGraphNodeDetailResponse:
       type: object

@@ -34,10 +34,13 @@ impl APIRouter {
     pub const ADMIN_RAG_DOCUMENT_FILE: &'static str = "/admin/rag/documents/{document_id}/file";
     pub const ADMIN_RAG_DOCUMENT_PREVIEW: &'static str =
         "/admin/rag/documents/{document_id}/preview";
+    pub const KNOWLEDGE_GRAPH_STATUS: &'static str = "/api/knowledge-graph/status";
+    pub const KNOWLEDGE_GRAPH_NODES: &'static str = "/api/knowledge-graph/nodes";
     pub const KNOWLEDGE_GRAPH_QUERY: &'static str = "/api/knowledge-graph/query";
     pub const KNOWLEDGE_GRAPH_NODE_DETAIL: &'static str = "/api/knowledge-graph/nodes/{node_id}";
     pub const KNOWLEDGE_GRAPH_RELATION_EVIDENCE: &'static str =
         "/api/knowledge-graph/relations/{relation_id}/evidence";
+    pub const ADMIN_KNOWLEDGE_GRAPH_REBUILD: &'static str = "/api/admin/knowledge-graph/rebuild";
     pub const ADMIN_KNOWLEDGE_GRAPH_DOCUMENT_EXTRACT: &'static str =
         "/api/admin/knowledge-graph/documents/{document_id}/extract";
     pub const ADMIN_KNOWLEDGE_GRAPH_DOCUMENT_DETAIL: &'static str =
