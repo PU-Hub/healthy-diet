@@ -10,13 +10,13 @@ pub struct AppState {
 pub struct APIRouter;
 
 impl APIRouter {
-    pub const PING: &'static str = "/ping";
+    pub const PING: &'static str = "/api/ping";
     pub const DISOCRD_LOGIN: &'static str = "/auth/discord/login";
     pub const DISOCRD_CALLBACK: &'static str = "/auth/discord/callbck";
     pub const REGISTER: &'static str = "/auth/register";
     pub const LOGIN: &'static str = "/auth/login";
     pub const ADMIN_LOGIN: &'static str = "/auth/admin/login";
-    pub const REFRESH_TOKEN: &'static str = "/auth/refresh";
+    pub const REFRESH_TOKEN: &'static str = "/api/auth/refresh";
     pub const ADMIN: &'static str = "/admin";
     pub const ADMIN_ME: &'static str = "/me";
     pub const ADMIN_USERS: &'static str = "/users";
@@ -46,30 +46,30 @@ impl APIRouter {
     pub const ADMIN_KNOWLEDGE_GRAPH_DOCUMENT_DETAIL: &'static str =
         "/api/admin/knowledge-graph/documents/{document_id}";
     pub const ADMIN_AGENT_TOKEN: &'static str = "/agent-token";
-    pub const NEWS_SYNC: &'static str = "/news/sync";
-    pub const NEWS: &'static str = "/news";
-    pub const NEWS_DETAIL: &'static str = "/news/{id}";
-    pub const NEWS_FILES: &'static str = "/news-files";
-    pub const RAG_SEARCH: &'static str = "/rag/search";
-    pub const ANNOUNCEMENTS_CURRENT: &'static str = "/announcements/current";
-    pub const RAG_SOURCE_FILE: &'static str = "/rag/sources/{document_id}/file";
-    pub const RAG_SOURCE_PREVIEW: &'static str = "/rag/sources/{document_id}/preview";
-    pub const PROFILE: &'static str = "/user/profile";
-    pub const AI_CONSULT: &'static str = "/consult";
-    pub const DIET: &'static str = "/diet";
-    pub const HEALTH: &'static str = "/health";
-    pub const DIET_RECORD: &'static str = "/diet_record";
-    pub const DIET_IMAGE: &'static str = "/diet_image";
-    pub const RECORD: &'static str = "/record";
-    pub const MONTH_STATS: &'static str = "/month_stats";
-    pub const GEMMA4_HEALTH: &'static str = "/gemma4/health";
-    pub const CHAT: &'static str = "/chat";
-    pub const CHAT_CHECK: &'static str = "/chat_check";
-    pub const AGENT_APPROVE: &'static str = "/approve";
-    pub const CHAT_ROOM: &'static str = "/chat_rooms";
-    pub const CHAT_ROOM_TITLES: &'static str = "/chat_room_titles";
-    pub const ROOM_HOSTROY: &'static str = "/room_history/{room_id}";
-    pub const ROOM_HISTORY_BY_INDEX: &'static str = "/room_history/{room_id}/index/{index}";
+    pub const NEWS_SYNC: &'static str = "/api/news/sync";
+    pub const NEWS: &'static str = "/api/news";
+    pub const NEWS_DETAIL: &'static str = "/api/news/{id}";
+    pub const NEWS_FILES: &'static str = "/api/news-files";
+    pub const RAG_SEARCH: &'static str = "/api/rag/search";
+    pub const ANNOUNCEMENTS_CURRENT: &'static str = "/api/announcements/current";
+    pub const RAG_SOURCE_FILE: &'static str = "/api/rag/sources/{document_id}/file";
+    pub const RAG_SOURCE_PREVIEW: &'static str = "/api/rag/sources/{document_id}/preview";
+    pub const PROFILE: &'static str = "/api/user/profile";
+    pub const AI_CONSULT: &'static str = "/api/consult";
+    pub const DIET: &'static str = "/api/diet";
+    pub const HEALTH: &'static str = "/api/health";
+    pub const DIET_RECORD: &'static str = "/api/diet_record";
+    pub const DIET_IMAGE: &'static str = "/api/diet_image";
+    pub const RECORD: &'static str = "/api/record";
+    pub const MONTH_STATS: &'static str = "/api/month_stats";
+    pub const GEMMA4_HEALTH: &'static str = "/api/gemma4/health";
+    pub const CHAT: &'static str = "/api/chat";
+    pub const CHAT_CHECK: &'static str = "/api/chat_check";
+    pub const AGENT_APPROVE: &'static str = "/api/approve";
+    pub const CHAT_ROOM: &'static str = "/api/chat_rooms";
+    pub const CHAT_ROOM_TITLES: &'static str = "/api/chat_room_titles";
+    pub const ROOM_HOSTROY: &'static str = "/api/room_history/{room_id}";
+    pub const ROOM_HISTORY_BY_INDEX: &'static str = "/api/room_history/{room_id}/index/{index}";
 }
 
 pub struct ENVKey;

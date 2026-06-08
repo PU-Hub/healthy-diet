@@ -45,7 +45,7 @@ paths:
               schema:
                 type: string
 
-  /ping:
+  /api/ping:
     get:
       tags: [System]
       summary: Ping server
@@ -58,7 +58,7 @@ paths:
               schema:
                 type: string
 
-  /health:
+  /api/health:
     get:
       tags: [System]
       summary: Health check
@@ -71,7 +71,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
-  /gemma4/health:
+  /api/gemma4/health:
     get:
       tags: [System]
       summary: Check local Gemma4 service reachability
@@ -228,7 +228,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /auth/refresh:
+  /api/auth/refresh:
     post:
       tags: [Authentication]
       summary: Refresh token
@@ -259,7 +259,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /user/profile:
+  /api/user/profile:
     get:
       tags: [Users]
       summary: Get profile
@@ -317,7 +317,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /consult:
+  /api/consult:
     post:
       tags: [Nutrition]
       summary: Ask AI nutrition consult
@@ -356,7 +356,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /diet:
+  /api/diet:
     post:
       tags: [Diet]
       summary: Analyze diet image with YOLO and AI scoring
@@ -406,7 +406,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /diet_record:
+  /api/diet_record:
     get:
       tags: [Diet]
       summary: Get latest diet records (max 30)
@@ -435,7 +435,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /diet_image:
+  /api/diet_image:
     post:
       tags: [Diet]
       summary: Get analyzed image by record id
@@ -479,7 +479,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /record:
+  /api/record:
     post:
       tags: [System]
       summary: Record a site visit for current date
@@ -502,7 +502,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /month_stats:
+  /api/month_stats:
     get:
       tags: [System]
       summary: Get daily visit counts of latest 30 days
@@ -523,7 +523,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /chat_check:
+  /api/chat_check:
     get:
       tags: [Chat]
       summary: Check downstream chat agent availability
@@ -548,7 +548,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProxyChatCheckResponse'
 
-  /chat:
+  /api/chat:
     post:
       tags: [Chat]
       summary: Proxy chat request to agent service (SSE)
@@ -588,7 +588,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /approve:
+  /api/approve:
     post:
       tags: [Admin]
       summary: Approve or reject downstream agent action
@@ -622,7 +622,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /announcements/current:
+  /api/announcements/current:
     get:
       tags: [Knowledge]
       summary: Get the latest published public announcement
@@ -647,7 +647,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /news/sync:
+  /api/news/sync:
     post:
       tags: [Knowledge]
       summary: Trigger downstream FDA news sync
@@ -672,7 +672,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /news:
+  /api/news:
     get:
       tags: [Knowledge]
       summary: Get paginated local news list
@@ -711,7 +711,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /news/{id}:
+  /api/news/{id}:
     get:
       tags: [Knowledge]
       summary: Get one local news article
@@ -748,7 +748,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /news-files:
+  /api/news-files:
     get:
       tags: [Knowledge]
       summary: List local news markdown files
@@ -773,7 +773,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /rag/search:
+  /api/rag/search:
     get:
       tags: [Knowledge]
       summary: Search local knowledge corpus
@@ -1842,7 +1842,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /rag/sources/{document_id}/file:
+  /api/rag/sources/{document_id}/file:
     get:
       tags: [Knowledge]
       summary: Open a RAG source file for end users
@@ -1879,7 +1879,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /rag/sources/{document_id}/preview:
+  /api/rag/sources/{document_id}/preview:
     get:
       tags: [Knowledge]
       summary: Preview a RAG source for end users
@@ -1905,7 +1905,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /chat_rooms:
+  /api/chat_rooms:
     get:
       tags: [Chat]
       summary: Get chat room list
@@ -1937,7 +1937,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /chat_room_titles:
+  /api/chat_room_titles:
     get:
       tags: [Chat]
       summary: Get chat room titles and summaries
@@ -1969,7 +1969,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /room_history/{room_id}:
+  /api/room_history/{room_id}:
     get:
       tags: [Chat]
       summary: Get room history messages
@@ -2007,7 +2007,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /room_history/{room_id}/index/{index}:
+  /api/room_history/{room_id}/index/{index}:
     get:
       tags: [Chat]
       summary: Get specific room history detail by index
