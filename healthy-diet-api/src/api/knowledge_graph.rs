@@ -7,6 +7,7 @@ use crate::{
 };
 use axum::{
     Json,
+    body::Bytes,
     extract::{Path, Query},
     http::{HeaderMap, StatusCode},
 };
@@ -41,6 +42,23 @@ fn normalized_graph_admin_payload(payload: Option<Value>) -> Value {
         Some(Value::Null) | None => json!({}),
         Some(other) => other,
     }
+}
+
+fn parse_graph_admin_payload(body: &[u8]) -> Result<Value, (StatusCode, Json<ErrorResponse>)> {
+    if body.is_empty() {
+        return Ok(json!({}));
+    }
+
+    let payload = serde_json::from_slice::<Value>(body).map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Invalid JSON body".to_string(),
+            }),
+        )
+    })?;
+
+    Ok(normalized_graph_admin_payload(Some(payload)))
 }
 
 pub async fn knowledge_graph_status_handler(
@@ -137,10 +155,10 @@ pub async fn knowledge_graph_relation_evidence_handler(
 pub async fn admin_knowledge_graph_rebuild_handler(
     admin_user: AuthUser,
     headers: HeaderMap,
-    payload: Option<Json<Value>>,
+    body: Bytes,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<ErrorResponse>)> {
     let admin_user = normalized_admin_user(&admin_user);
-    let payload = normalized_graph_admin_payload(payload.map(|Json(value)| value));
+    let payload = parse_graph_admin_payload(&body)?;
     let (status, response) = send_json_request(
         &headers,
         Some(&admin_user),
@@ -158,10 +176,10 @@ pub async fn admin_knowledge_graph_extract_handler(
     admin_user: AuthUser,
     headers: HeaderMap,
     Path(document_id): Path<String>,
-    payload: Option<Json<Value>>,
+    body: Bytes,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<ErrorResponse>)> {
     let admin_user = normalized_admin_user(&admin_user);
-    let payload = normalized_graph_admin_payload(payload.map(|Json(value)| value));
+    let payload = parse_graph_admin_payload(&body)?;
     let (status, response) = send_json_request(
         &headers,
         Some(&admin_user),
@@ -177,7 +195,7 @@ pub async fn admin_knowledge_graph_extract_handler(
 
 #[cfg(test)]
 mod tests {
-    use super::normalized_graph_admin_payload;
+    use super::{normalized_graph_admin_payload, parse_graph_admin_payload};
     use serde_json::json;
 
     #[test]
@@ -196,6 +214,21 @@ mod tests {
             normalized_graph_admin_payload(Some(payload.clone())),
             payload
         );
+    }
+
+    #[test]
+    fn graph_admin_payload_parser_accepts_empty_body() {
+        assert_eq!(parse_graph_admin_payload(b"").unwrap(), json!({}));
+    }
+
+    #[test]
+    fn graph_admin_payload_parser_accepts_null_body() {
+        assert_eq!(parse_graph_admin_payload(br#"null"#).unwrap(), json!({}));
+    }
+
+    #[test]
+    fn graph_admin_payload_parser_rejects_invalid_json() {
+        assert!(parse_graph_admin_payload(b"{").is_err());
     }
 }
 
