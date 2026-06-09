@@ -12,7 +12,7 @@ use axum::{
 };
 use reqwest::Method;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 fn normalized_admin_user(admin_user: &AuthUser) -> AuthUser {
     let forwarded_role = match admin_user.role.as_str() {
@@ -33,6 +33,14 @@ pub struct KnowledgeGraphNodesQuery {
     pub limit: Option<i64>,
     pub node_type: Option<String>,
     pub query: Option<String>,
+}
+
+fn normalized_graph_admin_payload(payload: Option<Value>) -> Value {
+    match payload {
+        Some(Value::Object(map)) => Value::Object(map),
+        Some(Value::Null) | None => json!({}),
+        Some(other) => other,
+    }
 }
 
 pub async fn knowledge_graph_status_handler(
@@ -129,9 +137,10 @@ pub async fn knowledge_graph_relation_evidence_handler(
 pub async fn admin_knowledge_graph_rebuild_handler(
     admin_user: AuthUser,
     headers: HeaderMap,
-    Json(payload): Json<Value>,
+    payload: Option<Json<Value>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<ErrorResponse>)> {
     let admin_user = normalized_admin_user(&admin_user);
+    let payload = normalized_graph_admin_payload(payload.map(|Json(value)| value));
     let (status, response) = send_json_request(
         &headers,
         Some(&admin_user),
@@ -149,9 +158,10 @@ pub async fn admin_knowledge_graph_extract_handler(
     admin_user: AuthUser,
     headers: HeaderMap,
     Path(document_id): Path<String>,
-    Json(payload): Json<Value>,
+    payload: Option<Json<Value>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<ErrorResponse>)> {
     let admin_user = normalized_admin_user(&admin_user);
+    let payload = normalized_graph_admin_payload(payload.map(|Json(value)| value));
     let (status, response) = send_json_request(
         &headers,
         Some(&admin_user),
@@ -163,6 +173,30 @@ pub async fn admin_knowledge_graph_extract_handler(
     .await?;
 
     Ok((status, Json(response)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalized_graph_admin_payload;
+    use serde_json::json;
+
+    #[test]
+    fn graph_admin_payload_defaults_to_empty_object() {
+        assert_eq!(normalized_graph_admin_payload(None), json!({}));
+        assert_eq!(
+            normalized_graph_admin_payload(Some(serde_json::Value::Null)),
+            json!({})
+        );
+    }
+
+    #[test]
+    fn graph_admin_payload_preserves_object_payloads() {
+        let payload = json!({ "force": true });
+        assert_eq!(
+            normalized_graph_admin_payload(Some(payload.clone())),
+            payload
+        );
+    }
 }
 
 pub async fn admin_knowledge_graph_document_detail_handler(

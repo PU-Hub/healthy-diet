@@ -854,6 +854,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Get global knowledge graph readiness and counts
+      description: Public Rust-facing endpoint for frontend clients. This route proxies the downstream agent route `/api/graph/status` and returns global graph readiness plus aggregate counts.
       operationId: knowledgeGraphStatus
       responses:
         '200':
@@ -1727,15 +1728,24 @@ paths:
     post:
       tags: [Admin]
       summary: Rebuild the global knowledge graph from current sources
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/graph/extract-all`. The request body may be omitted; when omitted, the backend forwards an empty object `{}`.
       operationId: adminRebuildKnowledgeGraph
       security:
         - bearerAuth: []
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/KnowledgeGraphRebuildRequest'
+            examples:
+              default:
+                summary: Incremental rebuild
+                value: {}
+              force:
+                summary: Force full rebuild
+                value:
+                  force: true
       responses:
         '200':
           description: Knowledge graph rebuild result
@@ -2947,9 +2957,11 @@ components:
 
     KnowledgeGraphRebuildRequest:
       type: object
+      description: Optional rebuild options. Omit the body or send `{}` for the default incremental rebuild behavior.
       properties:
         force:
           type: boolean
+          description: When true, rebuild all discovered documents instead of only changed ones.
 
     KnowledgeGraphRebuildResponse:
       type: object
