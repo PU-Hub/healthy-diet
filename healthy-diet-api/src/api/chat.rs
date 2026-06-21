@@ -50,7 +50,7 @@ pub struct ProxyChatCheckResponse {
     pub ping_response: Option<String>,
 }
 
-pub async fn proxy_chat_check_handler() -> (StatusCode, Json<ProxyChatCheckResponse>) {
+pub async fn chat_check_handler() -> (StatusCode, Json<ProxyChatCheckResponse>) {
     let node_api_url = match env::var(ENVKey::AGENT_API_URL) {
         Ok(url) => url,
         Err(e) => {
@@ -116,7 +116,7 @@ pub async fn proxy_chat_check_handler() -> (StatusCode, Json<ProxyChatCheckRespo
     }
 }
 
-pub async fn proxy_agent_chat_handler(
+pub async fn chat_handler(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     auth_user: AuthUser,
@@ -270,23 +270,25 @@ async fn upsert_chat_room_meta(
         message.to_string()
     };
 
-    sqlx::query(
-        r#"
-        INSERT INTO chat_rooms (room_id, user_id, title, summary, created_at, updated_at, last_message_at)
-        VALUES ($1, $2, $3, '[]'::jsonb, NOW(), NOW(), NOW())
+    sqlx::query(upsert_chat_room_meta_sql())
+        .bind(room_id.to_string())
+        .bind(user_id)
+        .bind(title_seed)
+        .execute(&state.db)
+        .await?;
+
+    Ok(())
+}
+
+fn upsert_chat_room_meta_sql() -> &'static str {
+    r#"
+        INSERT INTO chat_rooms (room_id, user_id, title, created_at, updated_at, last_message_at)
+        VALUES ($1, $2, $3, NOW(), NOW(), NOW())
         ON CONFLICT (room_id, user_id)
         DO UPDATE SET
             updated_at = NOW(),
             last_message_at = NOW()
-        "#,
-    )
-    .bind(room_id.to_string())
-    .bind(user_id)
-    .bind(title_seed)
-    .execute(&state.db)
-    .await?;
-
-    Ok(())
+        "#
 }
 
 fn guess_ext_from_data_url(header: &str) -> &'static str {
@@ -350,4 +352,23 @@ async fn save_chat_image_if_needed(
     };
 
     Ok(Some(absolute_path))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::upsert_chat_room_meta_sql;
+
+    #[test]
+    fn new_chat_room_insert_uses_db_default_for_summary() {
+        let sql = upsert_chat_room_meta_sql();
+
+        assert!(
+            !sql.contains("summary"),
+            "new room insert should not send summary so DB default can apply"
+        );
+        assert!(
+            !sql.contains("'[]'"),
+            "new room insert should not hardcode an empty JSON array summary"
+        );
+    }
 }

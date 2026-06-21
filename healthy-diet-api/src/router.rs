@@ -13,11 +13,11 @@ use crate::{
             rag_search_get_handler, rag_search_post_handler,
         },
         announcement::current_announcement_handler,
+        chat::{chat_check_handler, chat_handler},
         chat_room::{
             get_chat_room_titles_handler, get_chat_rooms_handler,
             get_room_history_by_index_handler, get_room_history_handler,
         },
-        consult::consult_handler,
         diet::yolo_handler,
         diet_image::diet_image_handler,
         diet_record::diet_records_handler,
@@ -32,7 +32,6 @@ use crate::{
         login::{admin_login_handler, login_handler},
         openapi::openapi_yaml_handler,
         ping::ping_handler,
-        proxy_chat::{proxy_agent_chat_handler, proxy_chat_check_handler},
         rag_document::{
             admin_rag_delete_handler, admin_rag_document_detail_handler,
             admin_rag_document_file_handler, admin_rag_document_preview_handler,
@@ -147,16 +146,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(get_profile_handler).put(update_user_profile_handler),
         )
         .route(
-            APIRouter::AI_CONSULT,
-            post(consult_handler).route_layer(middleware::from_fn_with_state(
-                RouteControlGuardState {
-                    app_state: state.clone(),
-                    route_key: "consult",
-                },
-                require_route_enabled_middleware,
-            )),
-        )
-        .route(
             APIRouter::DIET,
             post(yolo_handler).route_layer(middleware::from_fn_with_state(
                 RouteControlGuardState {
@@ -210,7 +199,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(
             APIRouter::CHAT,
-            post(proxy_agent_chat_handler).route_layer(middleware::from_fn_with_state(
+            post(chat_handler).route_layer(middleware::from_fn_with_state(
                 RouteControlGuardState {
                     app_state: state.clone(),
                     route_key: "proxy_chat",
@@ -218,7 +207,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 require_route_enabled_middleware,
             )),
         )
-        .route(APIRouter::CHAT_CHECK, get(proxy_chat_check_handler))
+        .route(APIRouter::CHAT_CHECK, get(chat_check_handler))
         .route(
             APIRouter::RAG_SOURCE_FILE,
             get(public_rag_document_file_handler),
@@ -340,6 +329,19 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(chat_response.status(), StatusCode::METHOD_NOT_ALLOWED);
+
+        let consult_response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/consult")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(consult_response.status(), StatusCode::NOT_FOUND);
 
         let approve_response = app
             .clone()
@@ -531,6 +533,7 @@ mod tests {
         );
 
         for stale_path in [
+            "/api/consult",
             "/chat",
             "/chat_check",
             "/approve",

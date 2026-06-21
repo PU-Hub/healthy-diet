@@ -11,7 +11,6 @@ tags:
   - name: System
   - name: Authentication
   - name: Users
-  - name: Nutrition
   - name: Diet
   - name: Chat
   - name: Knowledge
@@ -312,45 +311,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Update failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/consult:
-    post:
-      tags: [Nutrition]
-      summary: Ask AI nutrition consult
-      operationId: consult
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ConsultRequest'
-      responses:
-        '200':
-          description: AI reply
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConsultResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Server/AI error
           content:
             application/json:
               schema:
@@ -2157,23 +2117,9 @@ components:
         refreshToken:
           type: string
 
-    AiConsultationRecord:
-      type: object
-      required: [id, question, ai_response, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        question:
-          type: string
-        ai_response:
-          type: string
-        created_at:
-          type: string
-
     UserDetailResponse:
       type: object
-      required: [id, email, aiConsultations]
+      required: [id, email]
       properties:
         id:
           type: string
@@ -2212,10 +2158,6 @@ components:
           nullable: true
           items:
             type: string
-        aiConsultations:
-          type: array
-          items:
-            $ref: '#/components/schemas/AiConsultationRecord'
 
     UpdateProfilePayload:
       type: object
@@ -2248,20 +2190,6 @@ components:
           nullable: true
           items:
             type: string
-
-    ConsultRequest:
-      type: object
-      required: [question]
-      properties:
-        question:
-          type: string
-
-    ConsultResponse:
-      type: object
-      required: [reply]
-      properties:
-        reply:
-          type: string
 
     FoodItem:
       type: object

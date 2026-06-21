@@ -1,5 +1,5 @@
 use crate::{
-    api::model::{AiConsultationRecord, ErrorResponse, UpdateProfilePayload, UserDetailResponse},
+    api::model::{ErrorResponse, UpdateProfilePayload, UserDetailResponse},
     model::AppState,
     utils::jwt::AuthUser,
 };
@@ -36,36 +36,6 @@ pub async fn get_profile_handler(
         }),
     ))?;
 
-    let ai_records = sqlx::query!(
-        "SELECT id, question, ai_response, created_at
-         FROM ai_consultations
-         WHERE user_id = $1
-         ORDER BY created_at DESC
-         LIMIT 10",
-        auth_user.user_id
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| {
-        error!("DB Error (Get AI Records): {:?}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Internal server error".to_string(),
-            }),
-        )
-    })?;
-
-    let consultations = ai_records
-        .into_iter()
-        .map(|r| AiConsultationRecord {
-            id: r.id,
-            question: r.question,
-            ai_response: r.ai_response,
-            created_at: r.created_at.to_string(),
-        })
-        .collect();
-
     Ok(Json(UserDetailResponse {
         id: user.id.to_string(),
         email: user.email,
@@ -77,7 +47,6 @@ pub async fn get_profile_handler(
         gender: user.gender,
         taboo: user.taboo,
         disease: user.disease,
-        ai_consultations: consultations,
     }))
 }
 
@@ -132,7 +101,6 @@ pub async fn update_user_profile_handler(
         gender: updated_user.gender,
         taboo: updated_user.taboo,
         disease: updated_user.disease,
-        ai_consultations: vec![],
     }))
 }
 
@@ -163,7 +131,6 @@ mod tests {
         assert!(result.is_ok());
         let response = result.unwrap().0;
         assert_eq!(response.email, email);
-        assert_eq!(response.ai_consultations.len(), 0);
 
         sqlx::query!("DELETE FROM users WHERE email = $1", email)
             .execute(&state.db)

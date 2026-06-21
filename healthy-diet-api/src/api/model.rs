@@ -91,14 +91,6 @@ pub struct UpdateProfilePayload {
 }
 
 #[derive(Debug, Serialize)]
-pub struct AiConsultationRecord {
-    pub id: Uuid,
-    pub question: String,
-    pub ai_response: String,
-    pub created_at: String,
-}
-
-#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDetailResponse {
     pub id: String,
@@ -111,17 +103,6 @@ pub struct UserDetailResponse {
     pub gender: Option<String>,
     pub taboo: Option<Vec<String>>,
     pub disease: Option<Vec<String>>,
-    pub ai_consultations: Vec<AiConsultationRecord>,
-}
-
-#[derive(Deserialize)]
-pub struct ConsultRequest {
-    pub question: String,
-}
-
-#[derive(Serialize)]
-pub struct ConsultResponse {
-    pub reply: String,
 }
 
 #[derive(Serialize)]

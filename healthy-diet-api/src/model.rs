@@ -55,7 +55,6 @@ impl APIRouter {
     pub const RAG_SOURCE_FILE: &'static str = "/api/rag/sources/{document_id}/file";
     pub const RAG_SOURCE_PREVIEW: &'static str = "/api/rag/sources/{document_id}/preview";
     pub const PROFILE: &'static str = "/api/user/profile";
-    pub const AI_CONSULT: &'static str = "/api/consult";
     pub const DIET: &'static str = "/api/diet";
     pub const HEALTH: &'static str = "/api/health";
     pub const DIET_RECORD: &'static str = "/api/diet_record";

@@ -1,8 +1,5 @@
 use crate::{
-    api::model::{
-        AiConsultationRecord, AuthResponse, ErrorResponse, UserDetailResponse, UserProfile,
-        is_super_admin,
-    },
+    api::model::{AuthResponse, ErrorResponse, UserDetailResponse, UserProfile, is_super_admin},
     model::AppState,
     utils::{
         jwt::{AuthUser, sign_jwt_with_access_ttl},
@@ -697,40 +694,6 @@ pub async fn admin_user_detail_handler(
         }),
     ))?;
 
-    let ai_rows = sqlx::query(
-        r#"
-        SELECT id, question, ai_response, created_at
-        FROM ai_consultations
-        WHERE user_id = $1
-        ORDER BY created_at DESC
-        LIMIT 10
-        "#,
-    )
-    .bind(user_id)
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| {
-        error!("DB Error (Admin Get User AI Records): {:?}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: "Internal server error".to_string(),
-            }),
-        )
-    })?;
-
-    let ai_consultations = ai_rows
-        .into_iter()
-        .map(|row| AiConsultationRecord {
-            id: row.get("id"),
-            question: row.get("question"),
-            ai_response: row.get("ai_response"),
-            created_at: row
-                .get::<chrono::DateTime<chrono::Utc>, _>("created_at")
-                .to_rfc3339(),
-        })
-        .collect();
-
     Ok(Json(UserDetailResponse {
         id: user_row.get::<uuid::Uuid, _>("id").to_string(),
         email: user_row.get("email"),
@@ -742,6 +705,5 @@ pub async fn admin_user_detail_handler(
         gender: user_row.get("gender"),
         taboo: user_row.get("taboo"),
         disease: user_row.get("disease"),
-        ai_consultations,
     }))
 }

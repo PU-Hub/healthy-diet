@@ -18,13 +18,12 @@ pub const PROTECTED_ROUTE_KEYS: [&str; 5] = [
     "admin_login",
 ];
 
-pub const MANAGED_ROUTE_KEYS: [&str; 9] = [
+pub const MANAGED_ROUTE_KEYS: [&str; 8] = [
     "health",
     "ping",
     "auth_login",
     "auth_refresh",
     "admin_login",
-    "consult",
     "diet",
     "diet_image",
     "proxy_chat",
