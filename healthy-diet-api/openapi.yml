@@ -2539,6 +2539,15 @@ components:
           type: string
           format: uuid
           nullable: true
+          description: Legacy room id field retained for backward compatibility.
+        thread_id:
+          type: string
+          nullable: true
+          description: Preferred conversation thread id provided by the frontend and forwarded directly to the downstream agent.
+        is_new_conversation:
+          type: boolean
+          nullable: true
+          description: Whether the frontend considers this request the first message of a new conversation.
         user_context:
           type: object
           nullable: true

@@ -21,6 +21,8 @@ use crate::{
 pub struct AgentChatRequest {
     pub message: String,
     pub room_id: Option<Uuid>,
+    pub thread_id: Option<String>,
+    pub is_new_conversation: Option<bool>,
     pub user_context: Option<serde_json::Value>,
     pub image: Option<String>,
 }
@@ -33,6 +35,38 @@ struct NodeAgentPayload {
     pub user_id: String,
     pub user_context: Option<serde_json::Value>,
     pub image: Option<String>,
+}
+
+struct ResolvedThreadContext {
+    thread_id: String,
+    is_new_conversation: bool,
+}
+
+fn resolve_thread_context(
+    request: &AgentChatRequest,
+) -> Result<ResolvedThreadContext, (StatusCode, Json<ErrorResponse>)> {
+    if let Some(thread_id) = request.thread_id.as_deref().map(str::trim) {
+        if !thread_id.is_empty() {
+            return Ok(ResolvedThreadContext {
+                thread_id: thread_id.to_string(),
+                is_new_conversation: request.is_new_conversation.unwrap_or(false),
+            });
+        }
+    }
+
+    if let Some(room_id) = request.room_id {
+        return Ok(ResolvedThreadContext {
+            thread_id: room_id.to_string(),
+            is_new_conversation: request.is_new_conversation.unwrap_or(false),
+        });
+    }
+
+    Err((
+        StatusCode::BAD_REQUEST,
+        Json(ErrorResponse {
+            error: "thread_id is required".to_string(),
+        }),
+    ))
 }
 
 #[derive(Serialize)]
@@ -120,14 +154,12 @@ pub async fn chat_handler(
     (StatusCode, Json<ErrorResponse>),
 > {
     let client = Client::new();
-
-    let is_new_conversation = request.room_id.is_none();
-    let target_room_id = request.room_id.unwrap_or_else(Uuid::new_v4);
+    let resolved_thread = resolve_thread_context(&request)?;
 
     let payload = NodeAgentPayload {
         message: request.message,
-        thread_id: target_room_id.to_string(),
-        is_new_conversation,
+        thread_id: resolved_thread.thread_id,
+        is_new_conversation: resolved_thread.is_new_conversation,
         user_id: auth_user.user_id.to_string(),
         user_context: request.user_context,
         image: request.image,
@@ -187,7 +219,8 @@ pub async fn chat_handler(
 
 #[cfg(test)]
 mod tests {
-    use super::NodeAgentPayload;
+    use super::{AgentChatRequest, NodeAgentPayload, resolve_thread_context};
+    use serde_json::json;
     use uuid::Uuid;
 
     #[test]
@@ -220,5 +253,54 @@ mod tests {
             json.get("chat_history_id").is_none(),
             "proxy payload should not pre-allocate chat history ids in Rust"
         );
+    }
+
+    #[test]
+    fn resolve_thread_context_prefers_frontend_thread_fields() {
+        let request = AgentChatRequest {
+            message: "hello".to_string(),
+            room_id: None,
+            thread_id: Some("frontend-thread-123".to_string()),
+            is_new_conversation: Some(true),
+            user_context: Some(json!({ "locale": "zh-TW" })),
+            image: None,
+        };
+
+        let resolved = resolve_thread_context(&request).expect("thread context should resolve");
+
+        assert_eq!(resolved.thread_id, "frontend-thread-123");
+        assert!(resolved.is_new_conversation);
+    }
+
+    #[test]
+    fn resolve_thread_context_falls_back_to_legacy_room_id() {
+        let room_id = Uuid::new_v4();
+        let request = AgentChatRequest {
+            message: "hello".to_string(),
+            room_id: Some(room_id),
+            thread_id: None,
+            is_new_conversation: None,
+            user_context: None,
+            image: None,
+        };
+
+        let resolved = resolve_thread_context(&request).expect("thread context should resolve");
+
+        assert_eq!(resolved.thread_id, room_id.to_string());
+        assert!(!resolved.is_new_conversation);
+    }
+
+    #[test]
+    fn resolve_thread_context_requires_thread_or_room_id() {
+        let request = AgentChatRequest {
+            message: "hello".to_string(),
+            room_id: None,
+            thread_id: None,
+            is_new_conversation: Some(true),
+            user_context: None,
+            image: None,
+        };
+
+        assert!(resolve_thread_context(&request).is_err());
     }
 }
