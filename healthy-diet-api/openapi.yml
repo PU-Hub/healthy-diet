@@ -44,6 +44,20 @@ paths:
               schema:
                 type: string
 
+  /ping:
+    get:
+      tags: [System]
+      summary: Root ping endpoint
+      description: Lightweight Rust liveness endpoint. This is separate from the downstream agent `/ping` JSON health route used internally by `/api/chat_check`.
+      operationId: rootPing
+      responses:
+        '200':
+          description: Meme-style ping text
+          content:
+            text/plain:
+              schema:
+                type: string
+
   /api/ping:
     get:
       tags: [System]
@@ -487,6 +501,7 @@ paths:
     get:
       tags: [Chat]
       summary: Check downstream chat agent availability
+      description: Probes the configured downstream agent `/ping` route and reports whether proxy chat is currently reachable.
       operationId: chatCheck
       responses:
         '200':
@@ -512,6 +527,7 @@ paths:
     post:
       tags: [Chat]
       summary: Proxy chat request to agent service (SSE)
+      description: Rust-facing SSE endpoint for frontend clients. This route persists local room/history metadata, then forwards the request to the downstream agent route `/api/chat`.
       operationId: chat
       security:
         - bearerAuth: []
@@ -552,6 +568,7 @@ paths:
     post:
       tags: [Admin]
       summary: Approve or reject downstream agent action
+      description: Completes approval workflows initiated by the downstream agent chat flow. This route proxies the agent route `/api/approve`.
       operationId: approveAgent
       security:
         - bearerAuth: []
@@ -611,6 +628,7 @@ paths:
     post:
       tags: [Knowledge]
       summary: Trigger downstream FDA news sync
+      description: Rust-facing proxy for the downstream agent route `/api/news/sync`.
       operationId: newsSync
       responses:
         '200':
@@ -636,6 +654,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Get paginated local news list
+      description: Rust-facing proxy for the downstream agent route `/api/news`.
       operationId: listNews
       parameters:
         - in: query
@@ -675,6 +694,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Get one local news article
+      description: Rust-facing proxy for the downstream agent route `/api/news/{id}`.
       operationId: getNewsDetail
       parameters:
         - in: path
@@ -712,6 +732,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: List local news markdown files
+      description: Rust-facing proxy for the downstream agent route `/api/news-files`.
       operationId: listNewsFiles
       responses:
         '200':
@@ -737,6 +758,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Search local knowledge corpus
+      description: GET proxy for the downstream agent route `/api/rag/search`.
       operationId: ragSearchGet
       parameters:
         - in: query
@@ -777,6 +799,7 @@ paths:
     post:
       tags: [Knowledge]
       summary: Search local knowledge corpus with source filters
+      description: POST proxy for the downstream agent route `/api/rag/search`.
       operationId: ragSearchPost
       requestBody:
         required: true
@@ -834,6 +857,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: List knowledge graph nodes from the global graph cache
+      description: Public Rust-facing endpoint for frontend clients. This route proxies the downstream agent route `/api/graph/nodes`.
       operationId: knowledgeGraphNodes
       parameters:
         - in: query
@@ -870,6 +894,7 @@ paths:
     post:
       tags: [Knowledge]
       summary: Query a focused knowledge graph subgraph
+      description: Public Rust-facing endpoint for frontend clients. This route proxies the downstream agent route `/api/graph/search`.
       operationId: knowledgeGraphQuery
       requestBody:
         required: true
@@ -901,6 +926,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Get one knowledge graph node with neighbors and evidence
+      description: Public Rust-facing endpoint for frontend clients. This route proxies the downstream agent route `/api/graph/nodes/{node_id}`.
       operationId: knowledgeGraphNodeDetail
       parameters:
         - in: path
@@ -933,6 +959,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Get one relation with supporting evidence
+      description: Public Rust-facing endpoint for frontend clients. This route proxies the downstream agent route `/api/graph/relations/{relation_id}/evidence`.
       operationId: knowledgeGraphRelationEvidence
       parameters:
         - in: path
@@ -1427,6 +1454,7 @@ paths:
     get:
       tags: [Admin]
       summary: List RAG documents
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/rag/documents` and normalizes the downstream `{ items, total }` payload into a plain array.
       operationId: adminListRagDocuments
       security:
         - bearerAuth: []
@@ -1462,6 +1490,7 @@ paths:
     post:
       tags: [Admin]
       summary: Upload RAG document
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route forwards a multipart upload to the downstream agent route `/api/rag/documents` and rewrites returned file URLs to Rust-admin paths.
       operationId: adminUploadRagDocument
       security:
         - bearerAuth: []
@@ -1509,6 +1538,7 @@ paths:
     get:
       tags: [Admin]
       summary: Get RAG document detail
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/rag/documents/{document_id}` and rewrites returned file URLs to Rust-admin paths.
       operationId: adminGetRagDocument
       security:
         - bearerAuth: []
@@ -1541,6 +1571,7 @@ paths:
     delete:
       tags: [Admin]
       summary: Delete RAG document
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/rag/documents/{document_id}` and rewrites returned file URLs to Rust-admin paths.
       operationId: adminDeleteRagDocument
       security:
         - bearerAuth: []
@@ -1575,6 +1606,7 @@ paths:
     post:
       tags: [Admin]
       summary: Requeue a RAG document for indexing
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/rag/documents/{document_id}/reindex` and rewrites returned file URLs to Rust-admin paths.
       operationId: adminReindexRagDocument
       security:
         - bearerAuth: []
@@ -1609,6 +1641,7 @@ paths:
     get:
       tags: [Admin]
       summary: Open original RAG document file
+      description: Admin Rust-facing binary proxy for the downstream agent route `/api/rag/documents/{document_id}/file`.
       operationId: adminGetRagDocumentFile
       security:
         - bearerAuth: []
@@ -1654,6 +1687,7 @@ paths:
     get:
       tags: [Admin]
       summary: Preview RAG document content
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/rag/documents/{document_id}/preview` and rewrites returned file URLs to Rust-admin paths.
       operationId: adminGetRagDocumentPreview
       security:
         - bearerAuth: []
@@ -1730,6 +1764,7 @@ paths:
     get:
       tags: [Admin]
       summary: Get one extracted knowledge graph document
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/graph/documents/{document_id}`.
       operationId: adminGetKnowledgeGraphDocument
       security:
         - bearerAuth: []
@@ -1770,6 +1805,7 @@ paths:
     post:
       tags: [Admin]
       summary: Extract or refresh one knowledge graph document
+      description: Admin Rust-facing endpoint for frontend/admin clients. This route proxies the downstream agent route `/api/graph/documents/{document_id}/extract`. The request body may be omitted; when omitted, the backend forwards an empty object `{}`.
       operationId: adminExtractKnowledgeGraphDocument
       security:
         - bearerAuth: []
@@ -1816,6 +1852,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Open a RAG source file for end users
+      description: Public Rust-facing binary proxy for the downstream agent route `/api/rag/sources/{document_id}/file`.
       operationId: getRagSourceFile
       parameters:
         - in: path
@@ -1853,6 +1890,7 @@ paths:
     get:
       tags: [Knowledge]
       summary: Preview a RAG source for end users
+      description: Public Rust-facing endpoint for frontend clients. This route proxies the downstream agent route `/api/rag/sources/{document_id}/preview` and rewrites returned file URLs to Rust public-source paths.
       operationId: getRagSourcePreview
       parameters:
         - in: path
