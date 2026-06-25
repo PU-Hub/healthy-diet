@@ -11,11 +11,7 @@ use std::{convert::Infallible, time::Duration};
 use tracing::error;
 use uuid::Uuid;
 
-use crate::{
-    api::model::ErrorResponse,
-    model::ENVKey,
-    utils::jwt::AuthUser,
-};
+use crate::{api::model::ErrorResponse, model::ENVKey, utils::jwt::AuthUser};
 
 #[derive(Deserialize)]
 pub struct AgentChatRequest {
@@ -40,6 +36,45 @@ struct NodeAgentPayload {
 struct ResolvedThreadContext {
     thread_id: String,
     is_new_conversation: bool,
+}
+
+fn normalize_agent_sse_chunk(chunk: &str) -> Vec<Event> {
+    chunk
+        .split("\n\n")
+        .filter_map(|frame| {
+            let frame = frame.trim();
+            if frame.is_empty() {
+                return None;
+            }
+
+            let mut event_name: Option<String> = None;
+            let mut data_lines: Vec<String> = Vec::new();
+
+            for line in frame.lines() {
+                if let Some(value) = line.strip_prefix("event:") {
+                    let value = value.trim();
+                    if !value.is_empty() {
+                        event_name = Some(value.to_string());
+                    }
+                } else if let Some(value) = line.strip_prefix("data:") {
+                    data_lines.push(value.trim_start().to_string());
+                } else if !line.trim().is_empty() {
+                    data_lines.push(line.to_string());
+                }
+            }
+
+            if event_name.is_none() && data_lines.is_empty() {
+                return None;
+            }
+
+            let mut event = Event::default();
+            if let Some(name) = event_name {
+                event = event.event(name);
+            }
+
+            Some(event.data(data_lines.join("\n")))
+        })
+        .collect()
 }
 
 fn resolve_thread_context(
@@ -194,21 +229,21 @@ pub async fn chat_handler(
         )
     })?;
 
-    let stream = res.bytes_stream().map(|chunk| match chunk {
-        Ok(bytes) => {
-            let text = String::from_utf8_lossy(&bytes).to_string();
-            let clean_json = text.replace("data: ", "").trim().to_string();
-            if clean_json.is_empty() {
-                Ok(Event::default().data(""))
-            } else {
-                Ok(Event::default().data(clean_json))
+    let stream = res
+        .bytes_stream()
+        .map(|chunk| match chunk {
+            Ok(bytes) => normalize_agent_sse_chunk(&String::from_utf8_lossy(&bytes))
+                .into_iter()
+                .map(Ok)
+                .collect::<Vec<_>>(),
+            Err(e) => {
+                error!("stream read failed: {:?}", e);
+                vec![Ok(Event::default()
+                    .event("error")
+                    .data(r#"{"type":"error","content":"Stream read failed"}"#))]
             }
-        }
-        Err(e) => {
-            error!("stream read failed: {:?}", e);
-            Ok(Event::default().data(r#"{"type":"error","content":"Stream read failed"}"#))
-        }
-    });
+        })
+        .flat_map(futures::stream::iter);
 
     Ok(Sse::new(stream).keep_alive(
         axum::response::sse::KeepAlive::new()
@@ -219,7 +254,9 @@ pub async fn chat_handler(
 
 #[cfg(test)]
 mod tests {
-    use super::{AgentChatRequest, NodeAgentPayload, resolve_thread_context};
+    use super::{
+        AgentChatRequest, NodeAgentPayload, normalize_agent_sse_chunk, resolve_thread_context,
+    };
     use serde_json::json;
     use uuid::Uuid;
 
@@ -302,5 +339,18 @@ mod tests {
         };
 
         assert!(resolve_thread_context(&request).is_err());
+    }
+
+    #[test]
+    fn normalize_agent_sse_chunk_preserves_existing_event_and_data_lines() {
+        let normalized = normalize_agent_sse_chunk(
+            "event: status\ndata: {\"type\":\"status\",\"content\":\"ok\"}\n\n",
+        );
+
+        assert_eq!(normalized.len(), 1);
+        let debug = format!("{:?}", normalized[0]);
+        assert!(debug.contains("event: status"));
+        assert!(debug.contains("data: {\\\"type\\\":\\\"status\\\",\\\"content\\\":\\\"ok\\\"}"));
+        assert!(!debug.contains("data: event: status"));
     }
 }
