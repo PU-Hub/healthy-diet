@@ -44,20 +44,23 @@ use crate::{
         user::{get_profile_handler, update_user_profile_handler},
     },
     discord::login::{discord_callback, login_discord},
-    model::{APIRouter, AppState},
+    model::{APIRouter, AppState, ENVKey},
     utils::jwt::require_admin_middleware,
     utils::route_control::{RouteControlGuardState, require_route_enabled_middleware},
 };
 use axum::{
     Router,
     extract::{DefaultBodyLimit, MatchedPath},
-    http::Request,
+    http::{HeaderValue, Method, Request, header},
     middleware,
     response::Response,
     routing::{get, post},
 };
-use std::{sync::Arc, time::Duration};
-use tower_http::trace::TraceLayer;
+use std::{env, sync::Arc, time::Duration};
+use tower_http::{
+    cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing::{Span, field::Empty};
 
 pub fn create_app(state: Arc<AppState>) -> Router {
@@ -234,6 +237,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .merge(rag_admin_router)
         .nest(APIRouter::ADMIN, admin_router)
         .layer(DefaultBodyLimit::max(25 * 1024 * 1024))
+        .layer(build_cors_layer())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -288,12 +292,52 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .with_state(state)
 }
 
+fn build_cors_layer() -> CorsLayer {
+    let allowed_origins = env::var(ENVKey::CORS_ALLOWED_ORIGINS)
+        .ok()
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|origin| !origin.is_empty())
+                .map(|origin| {
+                    HeaderValue::from_str(origin)
+                        .unwrap_or_else(|_| panic!("invalid CORS origin configured: {origin}"))
+                })
+                .collect::<Vec<_>>()
+        })
+        .filter(|origins| !origins.is_empty())
+        .unwrap_or_else(|| {
+            vec![
+                HeaderValue::from_static("https://healthy-diet-web.vercel.app"),
+                HeaderValue::from_static("http://localhost:5173"),
+                HeaderValue::from_static("http://127.0.0.1:5173"),
+            ]
+        });
+
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(allowed_origins))
+        .allow_methods(AllowMethods::list([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ]))
+        .allow_headers(AllowHeaders::list([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCEPT,
+        ]))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use axum::{
         body::Body,
-        http::{Method, Request, StatusCode},
+        http::{Method, Request, StatusCode, header},
     };
     use serde_json::json;
     use sqlx::postgres::PgPoolOptions;
@@ -494,6 +538,53 @@ mod tests {
             admin_knowledge_graph_rebuild_response.status(),
             StatusCode::UNAUTHORIZED
         );
+    }
+
+    #[tokio::test]
+    async fn cors_preflight_allows_frontend_origin_for_login() {
+        let app = test_app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::OPTIONS)
+                    .uri("/auth/login")
+                    .header(header::ORIGIN, "https://healthy-diet-web.vercel.app")
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                    .header(
+                        header::ACCESS_CONTROL_REQUEST_HEADERS,
+                        "content-type,authorization,accept",
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                .and_then(|value| value.to_str().ok()),
+            Some("https://healthy-diet-web.vercel.app")
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get(header::ACCESS_CONTROL_ALLOW_METHODS)
+                .and_then(|value| value.to_str().ok()),
+            Some("GET,POST,PUT,PATCH,DELETE,OPTIONS")
+        );
+
+        let allow_headers = response
+            .headers()
+            .get(header::ACCESS_CONTROL_ALLOW_HEADERS)
+            .and_then(|value| value.to_str().ok())
+            .expect("preflight should include allow headers");
+        assert!(allow_headers.contains("content-type"));
+        assert!(allow_headers.contains("authorization"));
+        assert!(allow_headers.contains("accept"));
     }
 
     #[test]

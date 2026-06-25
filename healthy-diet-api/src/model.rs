@@ -77,6 +77,7 @@ impl ENVKey {
     pub const PORT: &'static str = "PORT";
     pub const DATABASE_URL: &'static str = "DATABASE_URL";
     pub const DATABASE_URL_2: &'static str = "DATABASE_URL_2";
+    pub const CORS_ALLOWED_ORIGINS: &'static str = "CORS_ALLOWED_ORIGINS";
     pub const GEMINI_API_KEY: &'static str = "GEMINI_API_KEY";
     pub const JWT_SECRET: &'static str = "JWT_SECRET";
     pub const AGENT_API_URL: &'static str = "AGENT_API_URL";
