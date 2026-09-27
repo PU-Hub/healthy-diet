@@ -1,3 +1,53 @@
+<div align="center">
+
+# Healthy Diet
+
+**A smart diet-tracking system that pairs YOLO computer vision with large language models. This monorepo holds its backend, AI inference and mobile client.**
+
+[![Status](https://img.shields.io/badge/status-deprecated-lightgrey)](#️-project-status)
+[![Rust](https://img.shields.io/badge/Rust-2024_edition-000?logo=rust)](healthy-diet-api)
+[![Axum](https://img.shields.io/badge/Axum-0.8-orange)](https://github.com/tokio-rs/axum)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?logo=postgresql&logoColor=white)](https://supabase.com)
+[![YOLO](https://img.shields.io/badge/YOLO-Ultralytics_8.3-00FFFF)](healthy-diet-yolo)
+[![Successor](https://img.shields.io/github/stars/archie0732/healthy-diet-ai-agent?label=successor%20%E2%98%85%20healthy-diet-ai-agent&logo=github)](https://github.com/archie0732/healthy-diet-ai-agent)
+
+[New backend: healthy-diet-ai-agent](https://github.com/archie0732/healthy-diet-ai-agent) · [Web frontend: healthy-diet-web](https://github.com/archie0732/healthy-diet-web) · [Live Demo](https://healthy-diet-web.vercel.app)
+
+**English** · [繁體中文](README.zh-TW.md)
+
+</div>
+
+---
+
+## ⚠️ Project Status
+
+> [!WARNING]
+> **This repository was retired in September 2026 and is no longer maintained.**
+>
+> Maintaining the Rust API, YOLO inference, Flutter app and agent service as separate projects became too costly, so the team consolidated the architecture.
+> Every API in this repository has moved to **[`archie0732/healthy-diet-ai-agent`](https://github.com/archie0732/healthy-diet-ai-agent)** (⭐ 751+). Please direct all further development, issues and pull requests there.
+
+> [!NOTE]
+> **The Flutter mobile app (`healthy-diet-app/`) has been discontinued.**
+> Its maintainers could not commit the time, so the app stopped at an early prototype (skeletons for login, registration, home and chat) and will not be developed further. Mobile users are served by the responsive UI of [healthy-diet-web](https://github.com/archie0732/healthy-diet-web).
+
+| Sub-project | Status | Replacement |
+| --- | --- | --- |
+| `healthy-diet-api`: Rust API server | ⚫ Retired (2026-09) | Replaced by [`healthy-diet-ai-agent`](https://github.com/archie0732/healthy-diet-ai-agent) |
+| `healthy-diet-yolo`: YOLO food recognition | ⚫ Retired | Recognition folded into the new backend |
+| `healthy-diet-AIprompt`: prompts and datasets | ⚫ Retired | Kept for reference only |
+| `healthy-diet-app`: Flutter app | ⛔ Discontinued | Replaced by the responsive web UI |
+
+Everything below is kept as an architectural reference and historical record.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Repository Layout](#repository-layout)
+- [Sub-projects](#sub-projects)
 - [API Overview](#api-overview)
 - [Running Locally (Legacy)](#running-locally-legacy)
 - [Environment Variables](#environment-variables)
